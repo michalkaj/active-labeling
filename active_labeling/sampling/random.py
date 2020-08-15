@@ -11,7 +11,7 @@ class RandomSampler(BaseSampler):
         super().__init__(data)
         self._seed = seed
 
-    def query(self, sample_size: int) -> Iterable[Sample]:
+    def sample(self, sample_size: int) -> Iterable[Sample]:
         if self._seed:
             np.random.seed(self._seed)
 

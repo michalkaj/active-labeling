@@ -9,5 +9,5 @@ class BaseSampler(abc.ABC):
         self._data = data
 
     @abc.abstractmethod
-    def query(self, sample_size: int) -> Iterable[int]:
+    def sample(self, sample_size: int) -> Iterable[int]:
         pass
