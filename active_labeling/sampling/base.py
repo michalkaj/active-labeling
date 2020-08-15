@@ -1,10 +1,13 @@
 import abc
-from typing import Sequence
+from typing import Iterable
 
-from active_labeling.loading.sample import Sample
+import numpy as np
 
 
 class BaseSampler(abc.ABC):
+    def __init__(self, data: np.ndarray):
+        self._data = data
+
     @abc.abstractmethod
-    def sample(self, items: Sequence[Sample], sample_size: int) -> Sequence[Sample]:
+    def query(self, sample_size: int) -> Iterable[int]:
         pass
