@@ -5,9 +5,6 @@ import numpy as np
 
 
 class BaseSampler(abc.ABC):
-    def __init__(self, data: np.ndarray):
-        self._data = data
-
     @abc.abstractmethod
-    def sample(self, sample_size: int) -> Iterable[int]:
+    def sample(self, data: np.ndarray, sample_size: int) -> Iterable[int]:
         pass

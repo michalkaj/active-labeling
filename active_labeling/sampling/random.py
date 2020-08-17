@@ -2,18 +2,16 @@ from typing import Optional, Iterable
 
 import numpy as np
 
-from active_labeling.loading.sample import Sample
 from active_labeling.sampling.base import BaseSampler
 
 
 class RandomSampler(BaseSampler):
-    def __init__(self, data: np.ndarray, seed: Optional[int] = None):
-        super().__init__(data)
+    def __init__(self, seed: Optional[int] = None):
         self._seed = seed
 
-    def sample(self, sample_size: int) -> Iterable[Sample]:
+    def sample(self, data: np.ndarray, sample_size: int) -> Iterable[int]:
         if self._seed:
             np.random.seed(self._seed)
 
-        indices = np.arange(len(self._data))
+        indices = np.arange(len(data))
         return np.random.choice(indices, size=sample_size, replace=False)
