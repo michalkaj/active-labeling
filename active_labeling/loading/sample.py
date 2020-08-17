@@ -1,8 +1,8 @@
 import base64
 from pathlib import Path
 
-IMAGE_EXTENSIONS = ('jpg', 'jpeg', 'png')
 
+IMAGE_EXTENSIONS = ('jpg', 'jpeg', 'png')
 
 def _get_image_type(extension: str) -> str:
     if extension in IMAGE_EXTENSIONS:
@@ -21,12 +21,10 @@ class Sample:
         return cls(path, path.name)
 
     def to_dict(self):
-        with self.path.open('rb') as file:
-            b64_file = base64.b64encode(file.read())
         extension = self.path.suffix[1:]
         return {
-            'base64_file': b64_file.decode('utf-8'),
             'name': self.name,
+            'path': str(self.path),
             'extension': extension,
             'type': _get_image_type(extension)
         }

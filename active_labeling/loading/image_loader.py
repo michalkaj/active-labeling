@@ -14,7 +14,7 @@ class ImageLoader(BaseLoader):
     def _transform(self, samples: Iterable[Sample]) -> Tuple[np.ndarray, List[Sample]]:
         samples_list = list(samples)
         image_array = np.array(
-            [np.array(Image.open(sample.path)) for sample in samples_list],
+            [np.array(Image.open(sample.path)).flatten() for sample in samples_list],
             dtype=np.uint8
         )
         return image_array, samples_list
