@@ -1,6 +1,5 @@
-import base64
 from pathlib import Path
-
+from typing import Any, Dict, Optional, Sequence
 
 IMAGE_EXTENSIONS = ('jpg', 'jpeg', 'png')
 
@@ -12,21 +11,25 @@ def _get_image_type(extension: str) -> str:
 
 
 class Sample:
-    def __init__(self, path: Path, name: str):
+    def __init__(self, path: Path, labels: Optional[Sequence[str]] = None):
         self.path = path
-        self.name = name
+        self.name = path.name
+        self.labels = labels or []
 
     @classmethod
-    def from_path(cls, path: Path):
-        return cls(path, path.name)
+    def from_dict(cls, dictionary: Dict[str, Any]):
+        labels = dictionary['labels']
+        if len(labels):
+            labels = [labels[0]]
+        return cls(Path(dictionary['path']),
+                   labels)
 
     def to_dict(self):
-        extension = self.path.suffix[1:]
+        # extension = self.path.suffix[1:]
         return {
             'name': self.name,
             'path': str(self.path),
-            'extension': extension,
-            'type': _get_image_type(extension)
+            'labels': self.labels
         }
 
     def __repr__(self):
