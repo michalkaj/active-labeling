@@ -6,6 +6,7 @@ import numpy as np
 from redis import Redis
 
 from active_labeling.backend.database.base import BaseDatabaseConnection
+from active_labeling.backend.utils import decode
 from active_labeling.loading.sample import Sample
 
 NOT_ANNOTATED = 'to_annotate'
@@ -81,12 +82,13 @@ class RedisConnection(BaseDatabaseConnection):
     def get_metrics(self) -> Iterable[Dict]:
         metrics = self._redis.smembers(METRICS)
         for metric_name in metrics:
-            num_samples = reversed(self._redis.lrange(
-                f'{METRIC_PREFIX}:{metric_name}:num_samples', 0, -1))
-            metric_value = reversed(self._redis.lrange(
-                f'{METRIC_PREFIX}:{metric_name}:metric_value', 0, -1))
+            metric_name = decode(metric_name)
+            num_samples = self._redis.lrange(
+                f'{METRIC_PREFIX}:{metric_name}:num_samples', 0, -1)
+            metric_value = self._redis.lrange(
+                f'{METRIC_PREFIX}:{metric_name}:metric_value', 0, -1)
             yield {
                 'metric_name': metric_name,
-                'num_samples': num_samples,
-                'metric_value': metric_value
+                'num_samples': list(reversed(map(int, num_samples))),
+                'metric_value': list(reversed(map(float, metric_value)))
             }
