@@ -22,6 +22,8 @@ class RedisConnection(BaseDatabaseConnection):
         self._redis = Redis(**redis_kwargs)
         self._redis.delete(ANNOTATED)
         self._redis.delete(NOT_ANNOTATED)
+        for key in self._redis.keys('metric*'):
+            self._redis.delete(key)
 
     def save_samples(self, samples: Iterable[Sample]):
         self._redis.delete(ANNOTATED)
@@ -41,6 +43,8 @@ class RedisConnection(BaseDatabaseConnection):
 
     def get_annotated_samples(self) -> Tuple[List[int], List[Sample]]:
         annotated = self._redis.smembers(ANNOTATED)
+        if not annotated:
+            return [], []
         indices, samples = zip(*self._get_samples(annotated))
         return list(indices), list(samples)
 
@@ -84,11 +88,11 @@ class RedisConnection(BaseDatabaseConnection):
         for metric_name in metrics:
             metric_name = decode(metric_name)
             num_samples = self._redis.lrange(
-                f'{METRIC_PREFIX}:{metric_name}:num_samples', 0, -1)
+                f'{METRIC_PREFIX}:{metric_name}:num_samples', 0, -1)[::-1]
             metric_value = self._redis.lrange(
-                f'{METRIC_PREFIX}:{metric_name}:metric_value', 0, -1)
+                f'{METRIC_PREFIX}:{metric_name}:metric_value', 0, -1)[::-1]
             yield {
                 'metric_name': metric_name,
-                'num_samples': list(reversed(map(int, num_samples))),
-                'metric_value': list(reversed(map(float, metric_value)))
+                'num_samples': list(map(int, num_samples)),
+                'metric_value': list(map(float, metric_value))
             }

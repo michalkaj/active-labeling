@@ -11,7 +11,6 @@ class SampleLoader:
         self._extensions = extensions
         self._recursive = recursive
 
-    def load(self, dir_path: Path) -> Iterable[Sample]:
+    def load(self, dir_path: Path) -> Iterable[Path]:
         glob = partial(dir_path.rglob) if self._recursive else partial(dir_path.glob)
-        sample_paths = chain.from_iterable(glob(f'*.{ext}') for ext in self._extensions)
-        return (Sample(sample_path) for sample_path in sample_paths)
+        return chain.from_iterable(glob(f'*.{ext}') for ext in self._extensions)
