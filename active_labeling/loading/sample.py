@@ -25,7 +25,6 @@ class Sample:
                    labels)
 
     def to_dict(self):
-        # extension = self.path.suffix[1:]
         return {
             'name': self.name,
             'path': str(self.path),
