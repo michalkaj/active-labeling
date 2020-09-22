@@ -11,6 +11,7 @@ from sklearn.base import BaseEstimator
 
 from active_labeling.backend.database.redis_db import RedisConnection
 from active_labeling.backend.resources.annotate import Annotate
+from active_labeling.backend.resources.annotations import Annotations
 from active_labeling.backend.resources.config import Config
 from active_labeling.backend.resources.metrics import Metrics
 from active_labeling.backend.resources.query import Query
@@ -33,6 +34,7 @@ class ActiveLearning:
             query_strategy=uncertainty_sampling
         )
 
+        # TODO: Decouple data initialization from resource initialization
         data = transform_samples(unlabeled_data)
         unlabeled_samples = [Sample(p) for p in unlabeled_data]
         self._db_connection.save_samples(unlabeled_samples)
@@ -42,15 +44,15 @@ class ActiveLearning:
     def run(self) -> None:
         self._app.run()
 
-    def _init_resources(self, data: np.ndarray, config_path: Optional[Path]):
-        query = Query.instantiate(data, self._learner, self._db_connection)
-        teach = Teach.instantiate(data, self._learner, self._db_connection)
-        annotate = Annotate.instantiate(self._learner, self._db_connection)
-        config = Config.instantiate(config_path, self._db_connection)
-        metrics = Metrics.instantiate(self._db_connection)
-        self._api.add_resource(annotate, annotate.endpoint)
-        self._api.add_resource(teach, teach.endpoint)
-        self._api.add_resource(query, query.endpoint)
-        self._api.add_resource(config, config.endpoint)
-        self._api.add_resource(metrics, metrics.endpoint)
+    def _init_resources(self, data: np.ndarray, config_path: Optional[Path]) -> None:
+        resources = (
+            Query.instantiate(data, self._learner, self._db_connection),
+            Teach.instantiate(data, self._learner, self._db_connection),
+            Annotate.instantiate(self._learner, self._db_connection),
+            Config.instantiate(config_path, self._db_connection),
+            Metrics.instantiate(self._db_connection),
+            Annotations.instantiate(self._db_connection)
+        )
 
+        for resource in resources:
+            self._api.add_resource(resource, resource.endpoint)
