@@ -1,6 +1,6 @@
 import json
 from numbers import Number
-from typing import Dict, Any, Iterable, Tuple, List
+from typing import Dict, Any, Tuple, List, Iterable
 
 import numpy as np
 from redis import Redis
@@ -25,7 +25,7 @@ class RedisConnection(BaseDatabaseConnection):
         for key in self._redis.keys('metric*'):
             self._redis.delete(key)
 
-    def save_samples(self, samples: Iterable[Sample]):
+    def save_samples(self, samples: List[Sample]):
         self._redis.delete(ANNOTATED)
         for index, sample in enumerate(samples):
             path = str(sample.path)
@@ -33,13 +33,15 @@ class RedisConnection(BaseDatabaseConnection):
             self._redis.set(SAMPLE_PREFIX + path,
                             json.dumps({'index': index, 'sample': sample.to_dict()}))
 
-    def _get_samples(self, paths: Iterable[bytes]) -> Iterable[Tuple[int, Sample]]:
+    def _get_samples(self, paths: List[bytes]) -> List[Tuple[int, Sample]]:
+        indices_samples = []
         for path in paths:
             path = path.decode('utf-8')
             index_sample_bytes = self._redis.get(SAMPLE_PREFIX + path)
             index_sample_dict = json.loads(index_sample_bytes)
             index, sample_dict = index_sample_dict['index'], index_sample_dict['sample']
-            yield index, Sample.from_dict(sample_dict)
+            indices_samples.append((index, Sample.from_dict(sample_dict)))
+        return indices_samples
 
     def get_annotated_samples(self) -> Tuple[List[int], List[Sample]]:
         annotated = self._redis.smembers(ANNOTATED)
@@ -64,7 +66,7 @@ class RedisConnection(BaseDatabaseConnection):
             self._redis.set(SAMPLE_PREFIX + path,
                             json.dumps({'index': index, 'sample': sample.to_dict()}))
 
-    def get_indices(self, sample_names: Iterable[str]) -> np.ndarray:
+    def get_indices(self, sample_names: List[str]) -> np.ndarray:
         return np.fromiter(
             (self._redis.get(PATH_TO_INDEX + name) for name in sample_names),
             dtype=np.uint32
@@ -83,16 +85,18 @@ class RedisConnection(BaseDatabaseConnection):
         self._redis.lpush(f'{METRIC_PREFIX}:{metric_name}:num_samples', num_samples)
         self._redis.lpush(f'{METRIC_PREFIX}:{metric_name}:metric_value', metric_value)
 
-    def get_metrics(self) -> Iterable[Dict]:
+    def get_metrics(self) -> List[Dict]:
         metrics = self._redis.smembers(METRICS)
+        metric_values = []
         for metric_name in metrics:
             metric_name = decode(metric_name)
             num_samples = self._redis.lrange(
                 f'{METRIC_PREFIX}:{metric_name}:num_samples', 0, -1)[::-1]
             metric_value = self._redis.lrange(
                 f'{METRIC_PREFIX}:{metric_name}:metric_value', 0, -1)[::-1]
-            yield {
+            metric_values.append({
                 'metric_name': metric_name,
                 'num_samples': list(map(int, num_samples)),
                 'metric_value': list(map(float, metric_value))
-            }
+            })
+        return metric_values

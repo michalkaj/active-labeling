@@ -7,7 +7,7 @@ from active_labeling.loading.sample import Sample
 
 class BaseDatabaseConnection(abc.ABC):
     @abc.abstractmethod
-    def get_annotated_samples(self) -> Tuple[Iterable[int], Iterable[Sample]]:
+    def get_annotated_samples(self) -> Tuple[List[int], List[Sample]]:
         pass
 
     @abc.abstractmethod
@@ -15,7 +15,7 @@ class BaseDatabaseConnection(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def save_samples(self, samples: Iterable[Sample]):
+    def save_samples(self, samples: List[Sample]):
         pass
 
     @abc.abstractmethod
@@ -23,7 +23,7 @@ class BaseDatabaseConnection(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_indices(self, sample_names: Iterable[str]):
+    def get_indices(self, sample_names: List[str]):
         pass
 
     @abc.abstractmethod
@@ -39,5 +39,5 @@ class BaseDatabaseConnection(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_metrics(self) -> Iterable[Dict]:
+    def get_metrics(self) -> List[Dict]:
         pass
