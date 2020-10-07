@@ -6,7 +6,7 @@ from flask_restful import Resource, reqparse
 from modAL import ActiveLearner
 from sklearn.metrics import accuracy_score
 
-from active_labeling.backend.database.base import BaseDatabaseConnection
+from active_labeling.backend.database.storage import StorageHandler
 from active_labeling.backend.loggers import get_logger
 from active_labeling.loading.sample import Sample
 
@@ -21,38 +21,36 @@ class Teach(Resource):
         self._parser = reqparse.RequestParser()
 
     @classmethod
-    def instantiate(cls, data: np.ndarray,
-                    learner: ActiveLearner, db_connection: BaseDatabaseConnection,
+    def instantiate(cls,
+                    storage_handler: StorageHandler,
+                    learner: ActiveLearner,
                     metrics: Optional[Iterable[Callable[[np.ndarray, np.ndarray], Number]]] = None):
-        cls._data = data
+        cls._storage_handler = storage_handler
         cls._learner = learner
-        cls._db_connection = db_connection
         cls._metrics = metrics or [accuracy_score]
         return cls
 
     def get(self):
-        indices, samples = self._db_connection.get_annotated_samples()
-        if not samples:
-            return
+        labeled_samples = self._storage_handler.get_labeled_data()
+        if not labeled_samples:
+            return  # TODO
 
-        y_train = self._transform_labels(samples)
-        x_train = self._data[indices]
+        y_train = self._transform_labels(label for _, label in labeled_samples)
+        x_train = np.stack(image for image, _ in labeled_samples)
         self._learner.teach(x_train, y_train)
         self._compute_metrics(x_train, y_train)
         return 'OK'
 
     def _transform_labels(self, samples: Iterable[Sample]) -> np.array:
-        config = self._db_connection.get_config()
+        config = self._storage_handler.get_config()
         allowed_labels = {label: index for index, label in enumerate(config['allowed_labels'])}
-        _LOGGER.debug(allowed_labels)
-        return np.array(
-            [np.array([allowed_labels[label] for label in sample.labels]) for sample in samples],
-            dtype=np.uint32
-        ).flatten()
+        return np.array([allowed_labels[sample] for sample in samples])
 
     def _compute_metrics(self, x: np.ndarray, y_true: np.ndarray) -> None:
         y_pred = self._learner.predict(x)
         for metric in self._metrics:
             result = metric(y_true, y_pred)
-            _LOGGER.debug(f'{metric.__name__} = {result}, size: {len(x)}')
-            self._db_connection.save_metric(metric.__name__, result, len(x))
+            self._storage_handler.save_metric(
+                name=metric.__name__,
+                value={'result': result, 'step': len(x)}
+            )

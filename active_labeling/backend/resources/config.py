@@ -1,10 +1,10 @@
 import json
 from pathlib import Path
-from typing import Optional
+from typing import Any
 
 from flask_restful import Resource, reqparse
 
-from active_labeling.backend.database.base import BaseDatabaseConnection
+from active_labeling.backend.database.storage import StorageHandler
 from active_labeling.backend.loggers import get_logger
 
 _LOGGER = get_logger(__name__)
@@ -20,24 +20,20 @@ class Config(Resource):
         self._parser.add_argument('multiclass', type=str, location='json')
 
     @classmethod
-    def instantiate(cls, config_path: Optional[Path], db_connection: BaseDatabaseConnection):
-        cls._db_connection = db_connection
-        config_path = config_path or Path('.')
-        config = cls._load_config(config_path)
-        cls._db_connection.save_config(config)
+    def instantiate(cls, storage_handler: StorageHandler):
+        cls._storage_handler = storage_handler
         return cls
 
-    @classmethod
-    def _load_config(cls, config_path: Path):
-        with config_path.open('r') as file:
-            config = json.load(file)
-        return config
-
     def get(self):
-        return self._db_connection.get_config()
-
-    def post(self):
-        config  = self._parser.parse_args()
-        self._db_connection.save_config(config)
+        config = self._storage_handler.get_config().as_dict()
+        jsonable_config = json.loads(json.dumps(config, default=_serialize_default))
+        return jsonable_config
 
 
+def _serialize_default(item: Any):
+    if isinstance(item, Path):
+        return str(item)
+    if isinstance(item, set):
+        return list(item)
+    else:
+        raise ValueError()

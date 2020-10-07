@@ -1,25 +1,17 @@
-from typing import Iterable, List, Tuple
+from pathlib import Path
 
 import numpy as np
 from PIL import Image
 
-from active_labeling.loading.base_loader import SampleLoader
-from active_labeling.loading.sample import Sample, IMAGE_EXTENSIONS
+from active_labeling.loading.base_loader import BaseDataLoader
+
+IMAGE_EXTENSIONS = {'jpg', 'jpeg', 'png'}
 
 
-# class ImageLoader(BaseLoader):
-#     def __init__(self, recursive: bool = False):
-#         super().__init__(IMAGE_EXTENSIONS, recursive)
-#
-#     def _transform(self, samples: Iterable[Sample]) -> List[Sample]]:
-#         samples_list = list(samples)
-#         # image_array = np.array(
-#         #     [np.array(Image.open(sample.path)).flatten() for sample in samples_list],
-#         #     dtype=np.uint8
-#         # )
-#         return samples_list
-#
-#
-#
-#
+class ImageLoader(BaseDataLoader[np.ndarray]):
+    def __init__(self, recurive: bool = True):
+        super().__init__(IMAGE_EXTENSIONS, recurive)
 
+    def _load_file(self, path: Path) -> np.ndarray:
+        image = Image.open(path)
+        return np.array(image)

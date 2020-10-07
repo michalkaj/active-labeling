@@ -1,14 +1,13 @@
 from pathlib import Path
-from typing import Iterable, Dict, Sequence
+from typing import Iterable, Dict, Any
 
 import numpy as np
 from flask_restful import Resource, reqparse
 from modAL import ActiveLearner
 
-from active_labeling.backend.database.base import BaseDatabaseConnection
+from active_labeling.backend.database.storage import StorageHandler
 from active_labeling.backend.loggers import get_logger
 from active_labeling.backend.utils import path_to_base64
-from active_labeling.loading.sample import Sample
 from active_labeling.sampling.active_sampler import ActiveSampler
 from active_labeling.settings import DEFAULT_BATCH_SIZE, DEFAULT_POOL_SIZE
 
@@ -25,26 +24,23 @@ class Query(Resource):
         self._parser.add_argument('pool_size', type=float, default=DEFAULT_POOL_SIZE)
 
     @classmethod
-    def instantiate(cls, data: np.ndarray,
-                    learner: ActiveLearner, db_connection: BaseDatabaseConnection):
-        cls._data = data
+    def instantiate(cls, storage_handler: StorageHandler, learner: ActiveLearner):
         cls._sampler = ActiveSampler(learner)
-        cls._db_connection = db_connection
+        cls._storage_handler = storage_handler
         return cls
 
     def get(self):
-        indices, samples = self._db_connection.get_not_annotated_samples()
-        data_x = self._data[indices]
+        samples = self._storage_handler.get_unlabeled_data()
+        data_x = np.stack(list(samples.values()))
 
         args = self._parser.parse_args()
         indices_to_query = self._sampler.sample(data_x, **args)
 
         return {'samples': list(self._prepare_samples(indices_to_query, samples))}
 
-    def _prepare_samples(self, indices: Iterable[int], samples: Sequence[Sample])\
+    def _prepare_samples(self, indices: Iterable[int], samples: Dict[str, np.ndarray])\
             -> Iterable[Dict[str, str]]:
+        image_paths = list(samples.keys())
         for index in indices:
-            sample = samples[index]
-            sample_dict = sample.to_dict()
-            sample_dict['base64_file'] = path_to_base64(Path(sample.path))
-            yield sample_dict
+            path = image_paths[index]
+            yield path_to_base64(Path(path))
