@@ -1,14 +1,11 @@
-from numbers import Number
-from typing import Iterable, Callable, Optional
+from typing import Iterable, Sequence
 
 import numpy as np
 from flask_restful import Resource, reqparse
 from modAL import ActiveLearner
-from sklearn.metrics import accuracy_score
 
 from active_labeling.backend.database.storage import StorageHandler
 from active_labeling.backend.loggers import get_logger
-from active_labeling.loading.sample import Sample
 
 _LOGGER = get_logger(__name__)
 
@@ -23,34 +20,59 @@ class Teach(Resource):
     @classmethod
     def instantiate(cls,
                     storage_handler: StorageHandler,
-                    learner: ActiveLearner,
-                    metrics: Optional[Iterable[Callable[[np.ndarray, np.ndarray], Number]]] = None):
+                    learner: ActiveLearner):
         cls._storage_handler = storage_handler
         cls._learner = learner
-        cls._metrics = metrics or [accuracy_score]
         return cls
 
     def get(self):
-        labeled_samples = self._storage_handler.get_labeled_data()
+        labeled_samples = self._storage_handler.get_labeled_samples()
         if not labeled_samples:
             return  # TODO
 
-        y_train = self._transform_labels(label for _, label in labeled_samples)
-        x_train = np.stack(image for image, _ in labeled_samples)
+        images, labels = zip(*labeled_samples.values())
+        y_train = self._transform_labels(labels)
+        x_train = self._transform_images(images)
+
         self._learner.teach(x_train, y_train)
-        self._compute_metrics(x_train, y_train)
-        return 'OK'
+        self._compute_metrics()
+        return 200
 
-    def _transform_labels(self, samples: Iterable[Sample]) -> np.array:
+    def _transform_labels(self, labels: Iterable[str]) -> np.array:
         config = self._storage_handler.get_config()
-        allowed_labels = {label: index for index, label in enumerate(config['allowed_labels'])}
-        return np.array([allowed_labels[sample] for sample in samples])
+        allowed_labels = {label: index for index, label in enumerate(config.labels)}
+        return np.array([allowed_labels[label] for label in labels])
 
-    def _compute_metrics(self, x: np.ndarray, y_true: np.ndarray) -> None:
-        y_pred = self._learner.predict(x)
-        for metric in self._metrics:
-            result = metric(y_true, y_pred)
+    def _transform_images(self, images: Sequence[np.ndarray]) -> np.ndarray:
+        images_array = np.stack(images)
+        config = self._storage_handler.get_config()
+        if config.transform is None:
+            return images_array
+        else:
+            return config.transform(images_array)
+
+    def _compute_metrics(self) -> None:
+        config = self._storage_handler.get_config()
+        if config.metrics is None:
+            return
+
+        valid_samples = self._storage_handler.get_validation_samples()
+        if not valid_samples:
+            return
+
+        images, labels = zip(*valid_samples.values())
+        y_valid = self._transform_labels(labels)
+        x_valid = self._transform_images(images)
+
+        y_pred = self._learner.predict(x_valid)
+
+        for name, metric in config.metrics.items():
+            result = metric(y_valid, y_pred)
             self._storage_handler.save_metric(
-                name=metric.__name__,
-                value={'result': result, 'step': len(x)}
+                name=name,
+                value={
+                    'metric_value': result,
+                    'num_samples': len(self._storage_handler.get_labeled_samples())
+                }
             )
+            print(self._storage_handler.get_metrics())

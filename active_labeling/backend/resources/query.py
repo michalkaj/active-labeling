@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Iterable, Dict, Any
+from typing import Iterable, Dict, Sequence
 
 import numpy as np
 from flask_restful import Resource, reqparse
@@ -25,22 +25,35 @@ class Query(Resource):
 
     @classmethod
     def instantiate(cls, storage_handler: StorageHandler, learner: ActiveLearner):
-        cls._sampler = ActiveSampler(learner)
         cls._storage_handler = storage_handler
+        cls._sampler = ActiveSampler(learner)
         return cls
 
     def get(self):
         samples = self._storage_handler.get_unlabeled_data()
-        data_x = np.stack(list(samples.values()))
+        data_x = self._transform_images(list(samples.values()))
 
         args = self._parser.parse_args()
         indices_to_query = self._sampler.sample(data_x, **args)
 
         return {'samples': list(self._prepare_samples(indices_to_query, samples))}
 
+    def _transform_images(self, images: Sequence[np.ndarray]) -> np.ndarray:
+        images_array = np.stack(images)
+        config = self._storage_handler.get_config()
+        if config.transform is None:
+            return images_array
+        else:
+            return config.transform(images_array)
+
     def _prepare_samples(self, indices: Iterable[int], samples: Dict[str, np.ndarray])\
             -> Iterable[Dict[str, str]]:
         image_paths = list(samples.keys())
+        config = self._storage_handler.get_config()
         for index in indices:
             path = image_paths[index]
-            yield path_to_base64(Path(path))
+            yield {
+                'path': path,
+                'name': str(Path(path).stem),
+                'base64_file': path_to_base64(config.unlabeled_data_path / path)
+            }

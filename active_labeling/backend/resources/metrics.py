@@ -1,3 +1,5 @@
+from collections import Counter
+from operator import itemgetter
 from typing import Dict
 
 from flask_restful import Resource
@@ -16,20 +18,14 @@ class Metrics(Resource):
         return cls
 
     def get(self):
-        metrics = list(self._db_connection.get_metrics())
+        metrics = list(self._storage_handler.get_metrics().items())
         return {
             'metrics': metrics,
             'label_frequencies': self._get_label_frequencies()
         }
 
     def _get_label_frequencies(self) -> Dict[str, int]:
-        _, samples = self._storage_handler.get_labeled_data()
-        config = self._storage_handler.get_config()
-        frequencies = {label: 0 for label in config['allowed_labels']}
-
-        labels = (label for sample in samples for label in sample.labels)
-        for label in labels:
-            frequencies[label] += 1
-
-        return frequencies
-
+        labels = map(itemgetter(1), self._storage_handler.get_labeled_samples().values())
+        all_labels = self._storage_handler.get_config().labels
+        counts =  {**dict(zip(all_labels, [0] * len(all_labels))), **Counter(labels)}
+        return dict(counts)

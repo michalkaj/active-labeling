@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import Dict, Any
 
 from flask_restful import Resource
 
@@ -16,6 +16,12 @@ class Annotations(Resource):
         cls._storage_handler = storage_handler
         return cls
 
-    def post(self) -> Dict[str, Dict[str, str]]:
-        labeled_samples = self._storage_handler.get_labeled_data()
-        return {'samples': labeled_samples}
+    def get(self) -> Dict[str, Any]:
+        labeled_samples = {name: label for name, (_, label)
+                           in self._storage_handler.get_labeled_samples().items()}
+        config = self._storage_handler.get_config()
+        return {
+            'dataset_name': config.dataset_name,
+            'labels': list(config.labels),
+            'annotations': labeled_samples,
+        }

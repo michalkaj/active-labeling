@@ -1,5 +1,6 @@
+from pathlib import Path
+
 from flask_restful import Resource, reqparse
-from modAL import ActiveLearner
 
 from active_labeling.backend.database.storage import StorageHandler
 from active_labeling.backend.loggers import get_logger
@@ -16,13 +17,13 @@ class Annotate(Resource):
         self._parser.add_argument('samples', type=list, location='json')
 
     @classmethod
-    def instantiate(cls, storage_handler: StorageHandler, learner: ActiveLearner):
-        cls._learner = learner
+    def instantiate(cls, storage_handler: StorageHandler):
         cls._storage_handler = storage_handler
         return cls
 
     def post(self):
         args = self._parser.parse_args()
         samples_json = args['samples']
-        samples = map(Sample.from_dict, samples_json)
+        samples = {s['path']: s['label'] for s in samples_json}
         self._storage_handler.annotate(samples)
+        return 200

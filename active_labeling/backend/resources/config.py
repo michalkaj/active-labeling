@@ -25,15 +25,11 @@ class Config(Resource):
         return cls
 
     def get(self):
-        config = self._storage_handler.get_config().as_dict()
-        jsonable_config = json.loads(json.dumps(config, default=_serialize_default))
-        return jsonable_config
-
-
-def _serialize_default(item: Any):
-    if isinstance(item, Path):
-        return str(item)
-    if isinstance(item, set):
-        return list(item)
-    else:
-        raise ValueError()
+        config = self._storage_handler.get_config()
+        return {
+            'server_url': config.server_url,
+            'labels': list(config.labels),
+            'batch_size': config.batch_size,
+            'pool_size': config.pool_size,
+            'dataset_name': config.dataset_name,
+        }

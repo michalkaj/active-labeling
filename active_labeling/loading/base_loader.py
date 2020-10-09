@@ -11,9 +11,9 @@ class BaseDataLoader(abc.ABC, Generic[T]):
         self._recursive = recursive
         self._extensions = extensions
 
-    def load(self, dir_path: Path) -> Dict[Path, T]:
+    def load(self, dir_path: Path) -> Dict[str, T]:
         paths = self._discover_paths(dir_path)
-        return {path: self._load_file(path) for path in paths}
+        return {str(path.relative_to(dir_path)): self._load_file(path) for path in paths}
 
     def _discover_paths(self, dir_path: Path) -> Iterable[Path]:
         glob = partial(dir_path.rglob) if self._recursive else partial(dir_path.glob)
