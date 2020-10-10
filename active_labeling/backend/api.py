@@ -1,11 +1,7 @@
-from typing import Dict, Any, Optional, Callable
-
 from flask import Flask
 from flask_cors import CORS
 from flask_restful import Api
-from modAL import ActiveLearner
-from modAL.uncertainty import uncertainty_sampling
-from sklearn.base import BaseEstimator
+from torch import nn
 
 from active_labeling.backend.database.storage import Storage, StorageHandler
 from active_labeling.backend.resources.annotate import Annotate
@@ -22,7 +18,7 @@ from active_labeling.loading.image_loader import ImageLoader
 
 class ActiveLearning:
     def __init__(self,
-                 estimator: BaseEstimator,
+                 learner: nn.Module,
                  config: ActiveLearningConfig,
                  data_loader: BaseDataLoader = ImageLoader()):
         self._app = Flask(__name__)
@@ -30,31 +26,23 @@ class ActiveLearning:
         CORS(self._app)
 
         storage_handler = self._load_data(config, data_loader)
-        learner = ActiveLearner(
-            estimator=estimator,
-            query_strategy=uncertainty_sampling
-        )
-
         self._init_resources(storage_handler, learner)
 
     def _load_data(self,
                    config: ActiveLearningConfig,
                    data_loader: BaseDataLoader) -> StorageHandler:
         unlabeled_data = data_loader.load(config.unlabeled_data_path)
-        data_labels = load_json_file(config.labels_file)['annotations'] if config.labels_file else None
+        data_labels = load_json_file(config.labels_file)['annotations']
 
-        validation_data = data_loader.load(
-            config.validation_data_path) if config.validation_data_path else None
-        validation_labels = load_json_file(
-            config.validation_labels_file_path)['annotations'] if config.validation_labels_file_path else None
+        validation_data = data_loader.load(config.validation_data_path)
+        validation_labels = load_json_file(config.validation_labels_path)['annotations']
 
         storage = Storage(unlabeled_data, config, data_labels, validation_data, validation_labels)
         return StorageHandler(storage)
 
-
     def _init_resources(self,
                         storage_handler: StorageHandler,
-                        learner: ActiveLearner) -> None:
+                        learner: nn.Module) -> None:
         resources = (
             Query.instantiate(storage_handler, learner),
             Teach.instantiate(storage_handler, learner),

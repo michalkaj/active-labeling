@@ -21,14 +21,13 @@ def monte_carlo_posterior_approximator(wrapped_model_class):
             return getattr(self._wrapped, name)
 
         def __call__(self, *args, **kwargs) -> Sequence[torch.Tensor]:
-            sample_size = kwargs.pop('sample_size')
-
-            if sample_size is None:
-                raise ValueError("sample_size has to be set for a MC approximation")
-
             # Make sure that all dropouts are enabled
             for dropout in self._dropouts:
                 dropout.train()
+
+            sample_size = kwargs.pop('sample_size', None)
+            if sample_size is None:
+                return self._wrapped(*args, **kwargs)
 
             return [self._wrapped(*args, **kwargs) for _ in range(sample_size)]
 

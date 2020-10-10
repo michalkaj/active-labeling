@@ -2,8 +2,9 @@ from typing import Sequence
 
 import torch
 from torch import nn
+from torch.nn.init import kaiming_normal_
 
-from active_labeling.estimators.bayesian_cnn.monte_carlo_approximation import \
+from active_labeling.active_learning.learners.bayesian_cnn.monte_carlo_approximation import \
     monte_carlo_posterior_approximator
 
 
@@ -11,7 +12,7 @@ from active_labeling.estimators.bayesian_cnn.monte_carlo_approximation import \
 class ConvNet(nn.Module):
     def __init__(self,
                  num_classes: int,
-                 conv_channel_dimensions: Sequence[int] = (3, 32, 64, 128),
+                 conv_channel_dimensions: Sequence[int] = (3, 32, 64),
                  conv_dropout_prob: float = 0.1,
                  mlp_dimensions: Sequence[int] = (512, 512),
                  mlp_dropout_prob: float = 0.1,
@@ -21,6 +22,13 @@ class ConvNet(nn.Module):
         self._feature_extractor = self._create_conv_layers(
             conv_channel_dimensions, conv_dropout_prob, pool_every)
         self._classifier = self._create_mlp_layers(num_classes, mlp_dimensions, mlp_dropout_prob)
+        self.init_weights()
+
+    def init_weights(self):
+        def init(module: nn.Module):
+            if isinstance(module, (nn.Conv2d, nn.Linear)):
+                kaiming_normal_(module.weight)
+        self.apply(init)
 
     @staticmethod
     def _create_conv_layers(dimensions: Sequence[int], dropout_prob: float,
@@ -56,6 +64,5 @@ def _conv_block(in_channels: int, out_channels: int, kernel_size: int = 3, paddi
     return nn.Sequential(
         nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, padding=padding, bias=False),
         nn.ReLU(),
-        nn.BatchNorm2d(out_channels),
         nn.Dropout2d(p=dropout_prob),
     )
