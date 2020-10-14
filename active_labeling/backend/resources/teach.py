@@ -48,7 +48,8 @@ class Teach(Resource):
             early_stop_callback=EarlyStopping(
                 monitor=self._config.early_stopping_metric,
                 min_delta=0.05,
-            )
+            ),
+            **self._config.trainer_kwargs,
         )
         trainer.fit(
             model=self._training_system,

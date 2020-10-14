@@ -18,11 +18,13 @@ class ActiveSampler(BaseSampler):
                  model: nn.Module,
                  acquisition_func: Callable,
                  num_classes: int,
-                 bayesian_sample_size: int = 20):
+                 bayesian_sample_size: int = 20,
+                 device: torch.device = torch.device('cpu')):
         self._model = model
         self._acquisition_func = acquisition_func
         self._bayesian_sample_size = bayesian_sample_size
         self._num_classes = num_classes
+        self._device = device
 
     def sample(self,
                data: np.ndarray,
@@ -42,6 +44,7 @@ class ActiveSampler(BaseSampler):
             self._num_classes,
             dtype=torch.float32
         )
+        self._model.to(self._device)
 
         progress_bar = tqdm(
             initial=0,
@@ -51,9 +54,12 @@ class ActiveSampler(BaseSampler):
 
         @toma.execute.chunked(data_tensor, initial_step=_INITIAL_STEP)
         def compute(batch: torch.Tensor, start: int, end: int):
+            batch = batch.to(self._device)
             posterior_sample = self._model(batch, sample_size=self._bayesian_sample_size)
-            logits[start: end] = torch.stack(posterior_sample, dim=1)
+            logits[start: end] = torch.stack(posterior_sample, dim=1).detach().cpu()
             progress_bar.update(end)
+
+        progress_bar.close()
 
         return logits
 
