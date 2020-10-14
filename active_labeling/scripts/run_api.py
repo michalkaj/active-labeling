@@ -16,7 +16,6 @@ def transform(arrays):
 
 if __name__ == '__main__':
     config = ActiveLearningConfig(
-        server_url='http://127.0.0.1:5000/',
         labels={'airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship',
                 'truck'},
         unlabeled_data_path=Path('/media/data/data/cifar/train'),

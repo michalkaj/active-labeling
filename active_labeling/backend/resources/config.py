@@ -27,7 +27,6 @@ class Config(Resource):
     def get(self):
         config = self._storage_handler.get_config()
         return {
-            'server_url': config.server_url,
             'labels': list(config.labels),
             'batch_size': config.batch_size,
             'pool_size': config.pool_size,

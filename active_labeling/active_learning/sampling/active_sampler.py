@@ -5,6 +5,7 @@ import numpy as np
 import torch
 from toma import toma
 from torch import nn
+from tqdm.auto import tqdm
 
 from active_labeling.active_learning.sampling.acquisition.bald import BALD
 from active_labeling.active_learning.sampling.base import BaseSampler
@@ -42,10 +43,17 @@ class ActiveSampler(BaseSampler):
             dtype=torch.float32
         )
 
+        progress_bar = tqdm(
+            initial=0,
+            total=len(data),
+            desc="Computing logits"
+        )
+
         @toma.execute.chunked(data_tensor, initial_step=_INITIAL_STEP)
         def compute(batch: torch.Tensor, start: int, end: int):
             posterior_sample = self._model(batch, sample_size=self._bayesian_sample_size)
             logits[start: end] = torch.stack(posterior_sample, dim=1)
+            progress_bar.update(end)
 
         return logits
 

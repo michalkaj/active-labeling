@@ -1,6 +1,7 @@
 from flask import Flask
 from flask_cors import CORS
 from flask_restful import Api
+from flask_ngrok import run_with_ngrok
 from torch import nn
 
 from active_labeling.backend.database.storage import Storage, StorageHandler
@@ -55,5 +56,7 @@ class ActiveLearning:
         for resource in resources:
             self._api.add_resource(resource, resource.endpoint)
 
-    def run(self) -> None:
+    def run(self, ngrok=False) -> None:
+        if ngrok:
+            run_with_ngrok(self._app)
         self._app.run()

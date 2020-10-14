@@ -7,6 +7,7 @@ from torch import nn
 
 from active_labeling.active_learning.sampling.acquisition.bald import BALD
 from active_labeling.active_learning.sampling.active_sampler import ActiveSampler
+from active_labeling.active_learning.sampling.random import RandomSampler
 from active_labeling.backend.database.storage import StorageHandler
 from active_labeling.backend.loggers import get_logger
 from active_labeling.backend.utils import path_to_base64

@@ -3,6 +3,7 @@ from functools import partial
 from itertools import chain
 from pathlib import Path
 from typing import Iterable, Set, Generic, TypeVar, Dict
+from tqdm import tqdm
 
 T = TypeVar('T')
 
@@ -12,8 +13,8 @@ class BaseDataLoader(abc.ABC, Generic[T]):
         self._extensions = extensions
 
     def load(self, dir_path: Path) -> Dict[str, T]:
-        paths = self._discover_paths(dir_path)
-        return {str(path.relative_to(dir_path)): self._load_file(path) for path in paths}
+        paths = list(self._discover_paths(dir_path))
+        return {str(path.relative_to(dir_path)): self._load_file(path) for path in tqdm(paths, desc='Loading images')}
 
     def _discover_paths(self, dir_path: Path) -> Iterable[Path]:
         glob = partial(dir_path.rglob) if self._recursive else partial(dir_path.glob)

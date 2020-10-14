@@ -8,7 +8,6 @@ import numpy as np
 
 @dataclass
 class ActiveLearningConfig:
-    server_url: str
     labels: Set[str]
     unlabeled_data_path: Path
     validation_data_path: Optional[Path] = None
