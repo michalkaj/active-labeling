@@ -29,7 +29,12 @@ class Query(Resource):
     def instantiate(cls, storage_handler: StorageHandler, learner: nn.Module):
         cls._storage_handler = storage_handler
         cls._config = storage_handler.get_config()
-        cls._sampler = ActiveSampler(learner, BALD, len(cls._config.labels))
+        cls._sampler = ActiveSampler(
+            learner,
+            BALD,
+            len(cls._config.labels),
+            device=cls._config.device
+        )
         return cls
 
     def get(self):

@@ -82,11 +82,11 @@ class Teach(Resource):
         )
 
     def _save_metrics(self) -> None:
-        for name, metric in self._training_system.metrics:
+        for name, metric in self._training_system.metrics.items():
             self._storage_handler.save_metric(
                 name=name,
                 value={
-                    'metric_value': metric.compute(),
+                    'metric_value': metric.compute().item(),
                     'num_samples': len(self._storage_handler.get_labeled_samples())
                 }
             )

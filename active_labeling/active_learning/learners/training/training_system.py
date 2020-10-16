@@ -33,7 +33,7 @@ class TrainingSystem(pl.LightningModule):
 
         y_pred = logits.argmax(-1)
         for metric in self.metrics.values():
-            metric.update(y_pred, y)
+            metric.update(y_pred.detach().cpu(), y.detach().cpu())
 
         return {'val_loss_batch': loss}
 
