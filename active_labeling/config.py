@@ -1,26 +1,18 @@
 from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Set, Optional, Callable, Dict, Any
+from typing import Set, Dict, Any
 
 import torch
-from pytorch_lightning.metrics import Metric, Accuracy
-
-import numpy as np
+from pytorch_lightning.metrics import Metric
 
 
 @dataclass
 class ActiveLearningConfig:
     labels: Set[str]
-    unlabeled_data_path: Path
-    validation_data_path: Optional[Path] = None
-    validation_labels_path: Optional[Path] = None
-    early_stopping_metric: str = 'accuracy'
-    metrics: Dict[str, Metric] = field(default_factory={'accuracy': Accuracy})
+    metrics: Dict[str, Metric]
+    early_stopping_metric: str
     batch_size: int = 10
     pool_size: float = 1.
-    dataset_name: str = 'dataset'
-    labels_file: Optional[Path] = None
-    transform: Optional[Callable[[np.ndarray], np.ndarray]] = None
+    bayesian_sample_size: int = 20
     dataloader_kwargs: Dict[str, Any] = field(default_factory=dict)
     trainer_kwargs: Dict[str, Any] = field(default_factory=dict)
     device: torch.device = torch.device('cpu')

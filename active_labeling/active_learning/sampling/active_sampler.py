@@ -1,65 +1,62 @@
 import math
+from pathlib import Path
 from typing import Iterable, Callable
 
 import numpy as np
 import torch
-from toma import toma
 from torch import nn
-from tqdm.auto import tqdm
+from torch.utils.data import DataLoader
+from tqdm import tqdm
 
+from active_labeling.active_learning.learners.training.dataset import ActiveDataset
 from active_labeling.active_learning.sampling.acquisition.bald import BALD
 from active_labeling.active_learning.sampling.base import BaseSampler
+from active_labeling.config import ActiveLearningConfig
 
-_INITIAL_STEP = 512
+_DATALOADER_BATCH_SIZE = 512
 
 
 class ActiveSampler(BaseSampler):
     def __init__(self,
                  model: nn.Module,
                  acquisition_func: Callable,
-                 num_classes: int,
-                 bayesian_sample_size: int = 20,
-                 device: torch.device = torch.device('cpu')):
+                 config: ActiveLearningConfig):
         self._model = model
         self._acquisition_func = acquisition_func
-        self._bayesian_sample_size = bayesian_sample_size
-        self._num_classes = num_classes
-        self._device = device
+        self._config = config
 
     def sample(self,
-               data: np.ndarray,
+               active_dataset: ActiveDataset,
                batch_size: int,
-               pool_size: float = 0.05) -> Iterable[int]:
-        reduced = self._reduce_dataset_size(data, pool_size)
-        reduced_data = data[reduced]
-        logits = self._compute_logits(reduced_data)
+               pool_size: float = 0.05) -> Iterable[Path]:
+        logits = self._compute_logits(active_dataset)
         _, indices = BALD(logits, batch_size)
-        return reduced[indices]
+        return active_dataset.not_labeled_pool[indices]
 
-    def _compute_logits(self, data: np.ndarray) -> torch.Tensor:
-        data_tensor = torch.from_numpy(data)
+    def _compute_logits(self, dataset: ActiveDataset) -> torch.Tensor:
+        dataset = dataset.evaluate()
         logits = torch.empty(
-            len(data_tensor),
-            self._bayesian_sample_size,
-            self._num_classes,
+            len(dataset),
+            self._config.bayesian_sample_size,
+            len(self._config.labels),
             dtype=torch.float32
         )
-        self._model.to(self._device)
+        self._model.to(self._config.device)
 
-        progress_bar = tqdm(
-            initial=0,
-            total=len(data),
-            desc="Computing logits"
+        start = 0
+        dataloader = DataLoader(
+            dataset,
+            **self._config.dataloader_kwargs
         )
 
-        @toma.execute.chunked(data_tensor, initial_step=_INITIAL_STEP)
-        def compute(batch: torch.Tensor, start: int, end: int):
-            batch = batch.to(self._device)
-            posterior_sample = self._model(batch, sample_size=self._bayesian_sample_size)
+        for batch in tqdm(dataloader):
+            images = batch['image'].to(self._config.device)
+            end = min(start + len(images), len(dataset))
+            with torch.no_grad():
+                posterior_sample = self._model(images, sample_size=self._config.bayesian_sample_size)
             logits[start: end] = torch.stack(posterior_sample, dim=1).detach().cpu()
-            progress_bar.update(end)
 
-        progress_bar.close()
+            start = end
 
         return logits
 

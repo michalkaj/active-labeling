@@ -1,6 +1,7 @@
 from typing import Dict
 
 import pytorch_lightning as pl
+import torch
 from pytorch_lightning.metrics import Metric, Accuracy
 from torch import nn
 from torch.optim import Adam
@@ -21,19 +22,20 @@ class TrainingSystem(pl.LightningModule):
         return self._model(x)
 
     def training_step(self, batch, batch_idx):
-        x, y = batch
-        logits = self.forward(x)
-        loss = self._loss(logits, y)
+        images, labels = batch['image'], batch['label']
+        logits = self.forward(images)
+        loss = self._loss(logits, labels)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        x, y = batch
-        logits = self.forward(x)
-        loss = self._loss(logits, y)
+        images, labels = batch['image'], batch['label']
+        with torch.no_grad():
+            logits = self.forward(images)
+            loss = self._loss(logits, labels)
 
         y_pred = logits.argmax(-1)
         for metric in self.metrics.values():
-            metric.update(y_pred.detach().cpu(), y.detach().cpu())
+            metric.update(y_pred.detach().cpu(), labels.detach().cpu())
 
         return {'val_loss_batch': loss}
 
