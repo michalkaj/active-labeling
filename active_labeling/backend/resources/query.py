@@ -7,6 +7,8 @@ from pytorch_lightning.callbacks import EarlyStopping
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
 
+from active_labeling.active_learning.learners.bayesian_cnn.monte_carlo_approximation import \
+    MonteCarloWrapper
 from active_labeling.active_learning.learners.training.dataset import ActiveDataset
 from active_labeling.active_learning.learners.training.training_system import TrainingSystem
 from active_labeling.active_learning.sampling.acquisition.bald import BALD
@@ -31,7 +33,7 @@ class Query(Resource):
     @classmethod
     def instantiate(cls,
                     config: ActiveLearningConfig,
-                    learner: nn.Module,
+                    learner: MonteCarloWrapper,
                     active_dataset: ActiveDataset,
                     valid_dataset: Dataset,
                     metrics: Dict[str, List[Dict]]
@@ -53,7 +55,7 @@ class Query(Resource):
         return {'samples': [self._prepare_sample(path) for path in paths_to_query]}
 
     def _teach(self):
-        self._learner.init_weights()
+        self._learner.reset_weights()
         train_loader = DataLoader(self._active_dataset.train(), **self._config.dataloader_kwargs,
                                   shuffle=True)
         valid_loader = DataLoader(self._valid_dataset, **self._config.dataloader_kwargs)

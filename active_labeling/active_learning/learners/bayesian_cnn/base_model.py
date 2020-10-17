@@ -4,11 +4,7 @@ import torch
 from torch import nn
 from torch.nn.init import kaiming_normal_
 
-from active_labeling.active_learning.learners.bayesian_cnn.monte_carlo_approximation import \
-    monte_carlo_posterior_approximator
 
-
-@monte_carlo_posterior_approximator
 class ConvNet(nn.Module):
     def __init__(self,
                  num_classes: int,

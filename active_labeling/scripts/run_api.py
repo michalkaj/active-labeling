@@ -7,6 +7,8 @@ from ordered_set import OrderedSet
 from pytorch_lightning.metrics import Accuracy
 
 from active_labeling.active_learning.learners.bayesian_cnn.base_model import ConvNet
+from active_labeling.active_learning.learners.bayesian_cnn.monte_carlo_approximation import \
+    MonteCarloWrapper
 from active_labeling.active_learning.learners.training.dataset import ActiveDataset
 from active_labeling.backend.api import ActiveLearning
 from active_labeling.backend.file_utils import load_json_file, discover_paths
@@ -42,13 +44,14 @@ if __name__ == '__main__':
         dataloader_kwargs={'batch_size': 16}
     )
 
-    bayesian_cnn = ConvNet(
+    cnn = ConvNet(
         num_classes=len(config.labels),
         conv_channel_dimensions=(3, 32, 64, 128),
         conv_dropout_prob=0.1,
         mlp_dimensions=(2048, 128),
         mlp_dropout_prob=0.1,
     )
+    bayesian_cnn = MonteCarloWrapper(cnn)
 
     data_path = Path('/media/data/data/cifar/train')
     active_dataset = get_dataset(data_path, Path('train_labels.json'), config.labels)
