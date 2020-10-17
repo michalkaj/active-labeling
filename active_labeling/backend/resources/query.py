@@ -59,10 +59,10 @@ class Query(Resource):
         valid_loader = DataLoader(self._valid_dataset, **self._config.dataloader_kwargs)
 
         trainer = pl.Trainer(
-            early_stop_callback=EarlyStopping(
+            callbacks=[EarlyStopping(
                 monitor=self._config.early_stopping_metric,
                 min_delta=0.05,
-            ),
+            )],
             max_epochs=3,
             **self._config.trainer_kwargs,
         )
