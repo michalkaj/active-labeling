@@ -5,8 +5,9 @@ from torch import nn
 
 
 def monte_carlo_posterior_approximator(wrapped_model_class):
-    class MonteCarloWrapper:
+    class MonteCarloWrapper(nn.Module):
         def __init__(self, *args, **kwargs):
+            super().__init__()
             self._wrapped = wrapped_model_class(*args, **kwargs)
             self._dropouts = list(self._get_dropouts(self._wrapped))
 
