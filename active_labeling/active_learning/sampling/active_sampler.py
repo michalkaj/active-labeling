@@ -1,6 +1,6 @@
 import math
 from pathlib import Path
-from typing import Iterable, Callable
+from typing import Iterable, Callable, Sequence
 
 import numpy as np
 import torch
@@ -8,12 +8,10 @@ from torch import nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from active_labeling.active_learning.learners.training.dataset import ActiveDataset
+from active_labeling.active_learning.learners.training.dataset import ActiveDataset, Reducer
 from active_labeling.active_learning.sampling.acquisition.bald import BALD
 from active_labeling.active_learning.sampling.base import BaseSampler
 from active_labeling.config import ActiveLearningConfig
-
-_DATALOADER_BATCH_SIZE = 512
 
 
 class ActiveSampler(BaseSampler):
@@ -27,21 +25,26 @@ class ActiveSampler(BaseSampler):
 
     def sample(self,
                active_dataset: ActiveDataset,
-               batch_size: int,
-               pool_size: float = 0.05) -> Iterable[Path]:
-        logits = self._compute_logits(active_dataset)
-        _, indices = BALD(logits, batch_size)
-        return active_dataset.not_labeled_pool[indices]
+               batch_size: int) -> Sequence[Path]:
+
+        with Reducer(active_dataset, self._config.pool_size) as (reduced_dataset, indices_subset):
+            logits = self._compute_logits(reduced_dataset)
+        _, indices = self._acquisition_func(logits, batch_size)
+        indices = indices_subset[indices]
+        return [active_dataset.not_labeled_pool[i] for i in indices]
 
     def _compute_logits(self, dataset: ActiveDataset) -> torch.Tensor:
         dataset = dataset.evaluate()
+        self._model.to(self._config.device)
+        self._model.eval()
+
         logits = torch.empty(
             len(dataset),
             self._config.bayesian_sample_size,
             len(self._config.labels),
             dtype=torch.float32
         )
-        self._model.to(self._config.device)
+
 
         start = 0
         dataloader = DataLoader(
@@ -49,7 +52,7 @@ class ActiveSampler(BaseSampler):
             **self._config.dataloader_kwargs
         )
 
-        for batch in tqdm(dataloader):
+        for batch in tqdm(dataloader, total=len(dataloader)):
             images = batch['image'].to(self._config.device)
             end = min(start + len(images), len(dataset))
             with torch.no_grad():

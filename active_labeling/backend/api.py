@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from flask import Flask
 from flask_cors import CORS
 from flask_ngrok import run_with_ngrok
@@ -11,7 +13,6 @@ from active_labeling.backend.resources.annotations import Annotations
 from active_labeling.backend.resources.config import Config
 from active_labeling.backend.resources.metrics import Metrics
 from active_labeling.backend.resources.query import Query
-from active_labeling.backend.resources.teach import Teach
 from active_labeling.config import ActiveLearningConfig
 
 
@@ -35,8 +36,7 @@ class ActiveLearning:
                         ) -> None:
         metrics = {}
         resources = (
-            Query.instantiate(config, learner, active_dataset),
-            Teach.instantiate(config, learner, active_dataset, valid_dataset),
+            Query.instantiate(config, learner, active_dataset, valid_dataset, metrics),
             Annotate.instantiate(config, active_dataset),
             Config.instantiate(config),
             Metrics.instantiate(config, metrics, active_dataset),

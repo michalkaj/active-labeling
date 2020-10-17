@@ -28,10 +28,5 @@ class Annotate(Resource):
         args = self._parser.parse_args()
         samples_json = args['samples']
         annotations = {Path(s['path']): s['label'] for s in samples_json}
-        self._save_annotations(annotations)
+        self._active_dataset.add_labels(annotations)
         return 200
-
-    def _save_annotations(self, annotations: Dict[Path, str]) -> None:
-        mapping = {label: i for i, label in enumerate(self._config.labels)}
-        annotations_int = {path: mapping[label] for path, label in annotations.items()}
-        self._active_dataset.add_labels(annotations_int)

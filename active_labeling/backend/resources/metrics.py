@@ -30,6 +30,8 @@ class Metrics(Resource):
 
     def _get_label_frequencies(self) -> Dict[str, int]:
         counts = {label: 0 for label in self._config.labels}
-        for label in self._active_dataset.labels.values():
+        reverse_mapping = {i: label for label, i in self._active_dataset.label_mapping().items()}
+        for label_idx in self._active_dataset.labels.values():
+            label = reverse_mapping[label_idx]
             counts[label] += 1
         return counts
