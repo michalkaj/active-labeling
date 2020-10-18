@@ -2,8 +2,9 @@ from typing import Dict, Any
 
 from flask_restful import Resource
 
-from active_labeling.backend.database.storage import StorageHandler
+from active_labeling.active_learning.learners.training.dataset import ActiveDataset
 from active_labeling.backend.loggers import get_logger
+from active_labeling.config import ActiveLearningConfig
 
 _LOGGER = get_logger(__name__)
 
@@ -12,16 +13,16 @@ class Annotations(Resource):
     endpoint = '/annotations'
 
     @classmethod
-    def instantiate(cls, storage_handler: StorageHandler):
-        cls._storage_handler = storage_handler
+    def instantiate(cls, config: ActiveLearningConfig, active_dataset: ActiveDataset):
+        cls._config = config
+        cls._active_dataset = active_dataset
         return cls
 
     def get(self) -> Dict[str, Any]:
-        labeled_samples = {name: label for name, (_, label)
-                           in self._storage_handler.get_labeled_samples().items()}
-        config = self._storage_handler.get_config()
+        mapping = {i: label for i, label in enumerate(self._config.labels)}
+        labels = {str(path): mapping[label_int] for path, label_int
+                  in self._active_dataset.labels.items()}
         return {
-            'dataset_name': config.dataset_name,
-            'labels': list(config.labels),
-            'annotations': labeled_samples,
+            'labels': list(self._config.labels),
+            'annotations': labels,
         }

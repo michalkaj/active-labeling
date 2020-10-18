@@ -2,7 +2,7 @@ from typing import Optional, Iterable
 
 import numpy as np
 
-from active_labeling.sampling.base import BaseSampler
+from active_labeling.active_learning.sampling.base import BaseSampler
 
 
 class RandomSampler(BaseSampler):
