@@ -52,7 +52,7 @@ class ActiveSampler(BaseSampler):
             **self._config.dataloader_kwargs
         )
 
-        for batch in tqdm(dataloader, total=len(dataloader)):
+        for batch in dataloader:
             images = batch['image'].to(self._config.device)
             end = min(start + len(images), len(dataset))
             with torch.no_grad():
