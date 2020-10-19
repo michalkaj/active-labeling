@@ -39,7 +39,7 @@ class TrainingSystem(pl.LightningModule):
 
         return {'val_loss_batch': loss}
 
-    def on_validation_epoch_start(self) -> None:
+    def on_train_epoch_start(self) -> None:
         for metric in self.metrics.values():
             metric.reset()
 
