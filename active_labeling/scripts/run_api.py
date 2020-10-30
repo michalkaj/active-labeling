@@ -6,10 +6,10 @@ import torchvision.transforms as tvt
 from ordered_set import OrderedSet
 from pytorch_lightning.metrics import Accuracy
 
-from active_labeling.active_learning.learners.bayesian_cnn.base_model import ConvNet
-from active_labeling.active_learning.learners.bayesian_cnn.monte_carlo_approximation import \
+from active_labeling.active_learning.models.base_model import ConvNet
+from active_labeling.active_learning.models.monte_carlo_approximation import \
     MonteCarloWrapper
-from active_labeling.active_learning.learners.training.dataset import ActiveDataset
+from active_labeling.active_learning.training import ActiveDataset
 from active_labeling.backend.api import ActiveLearning
 from active_labeling.backend.file_utils import load_json_file, discover_paths
 from active_labeling.config import ActiveLearningConfig

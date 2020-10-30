@@ -3,7 +3,7 @@ from typing import Dict
 
 from flask_restful import Resource, reqparse
 
-from active_labeling.active_learning.learners.training.dataset import ActiveDataset
+from active_labeling.active_learning.training import ActiveDataset
 from active_labeling.backend.loggers import get_logger
 from active_labeling.config import ActiveLearningConfig
 

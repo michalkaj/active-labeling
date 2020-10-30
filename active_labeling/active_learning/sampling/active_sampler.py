@@ -8,7 +8,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from active_labeling.active_learning.learners.training.dataset import ActiveDataset, Reducer
+from active_labeling.active_learning.training import ActiveDataset, Reducer
 from active_labeling.active_learning.sampling.acquisition.bald import BALD
 from active_labeling.active_learning.sampling.base import BaseSampler
 from active_labeling.config import ActiveLearningConfig

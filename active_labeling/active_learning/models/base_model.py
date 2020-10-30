@@ -1,8 +1,7 @@
-from typing import Sequence
-
 import torch
 from torch import nn
 from torch.nn.init import kaiming_normal_
+from typing import Sequence
 
 
 class ConvNet(nn.Module):

@@ -7,7 +7,7 @@ from flask_restful import Api
 from torch import nn
 from torch.utils.data import Dataset
 
-from active_labeling.active_learning.learners.training.dataset import ActiveDataset
+from active_labeling.active_learning.training import ActiveDataset
 from active_labeling.backend.resources.annotate import Annotate
 from active_labeling.backend.resources.annotations import Annotations
 from active_labeling.backend.resources.config import Config
