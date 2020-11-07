@@ -1,6 +1,4 @@
-import json
 from pathlib import Path
-from random import shuffle
 
 import torchvision.transforms as tvt
 from ordered_set import OrderedSet
@@ -9,10 +7,10 @@ from pytorch_lightning.metrics import Accuracy
 from active_labeling.active_learning.models.base_model import ConvNet
 from active_labeling.active_learning.models.monte_carlo_approximation import \
     MonteCarloWrapper
-from active_labeling.active_learning.training import ActiveDataset
-from active_labeling.backend.api import ActiveLearning
+from active_labeling.active_learning.training.dataset import ActiveDataset
+from active_labeling.backend.api import ActiveLearningAPI
 from active_labeling.backend.file_utils import load_json_file, discover_paths
-from active_labeling.config import ActiveLearningConfig
+from active_labeling.config import LearningConfig
 
 
 def get_dataset(data_path: Path, labels_path: Path, all_labels: OrderedSet[str]) -> ActiveDataset:
@@ -35,13 +33,17 @@ def get_dataset(data_path: Path, labels_path: Path, all_labels: OrderedSet[str])
 
 
 if __name__ == '__main__':
-    config = ActiveLearningConfig(
+    data_path = Path('/media/data/data/cifar/train')
+
+    config = LearningConfig(
+        data_root=data_path,
         labels=OrderedSet(('airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog',
                            'horse', 'ship', 'truck')),
         metrics={'accuracy': Accuracy()},
         early_stopping_metric='accuracy',
         pool_size=0.1,
-        dataloader_kwargs={'batch_size': 16}
+        dataloader_kwargs={'batch_size': 16},
+        initial_training_set_size=230,
     )
 
     cnn = ConvNet(
@@ -51,14 +53,13 @@ if __name__ == '__main__':
         mlp_dimensions=(2048, 128),
         mlp_dropout_prob=0.1,
     )
-    bayesian_cnn = MonteCarloWrapper(cnn)
+    bayesian_cnn = MonteCarloWrapper(cnn, config.bayesian_sample_size)
 
-    data_path = Path('/media/data/data/cifar/train')
-    active_dataset = get_dataset(data_path, Path('train_labels.json'), config.labels)
+    active_dataset = get_dataset(data_path, Path('initial_labels2.json'), config.labels)
     valid_dataset = get_dataset(Path('/media/data/data/cifar/train'),
                                 Path('valid_labels.json'), config.labels)
 
-    active_learning = ActiveLearning(
+    active_learning = ActiveLearningAPI(
         learner=bayesian_cnn,
         active_dataset=active_dataset,
         valid_dataset=valid_dataset,

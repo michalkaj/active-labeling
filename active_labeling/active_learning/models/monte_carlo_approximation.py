@@ -4,12 +4,16 @@ from torch import nn
 from typing import Sequence
 
 
+BAYESIAN_SAMPLE_DIM = 1
+
+
 class MonteCarloWrapper(nn.Module):
-    def __init__(self, model: nn.Module):
+    def __init__(self, model: nn.Module, sample_size: int):
         super().__init__()
         self._wrapped = model
         self._dropouts = list(self._get_dropouts(self._wrapped))
         self._wrapped_initial_state_dict = deepcopy(model.state_dict())
+        self.sample_size = sample_size
 
     def _get_dropouts(self, module) -> Sequence[nn.Module]:
         for layer in module.children():
@@ -21,13 +25,12 @@ class MonteCarloWrapper(nn.Module):
     def reset_weights(self):
         self._wrapped.load_state_dict(deepcopy(self._wrapped_initial_state_dict))
 
-    def forward(self, *args, **kwargs) -> Sequence[torch.Tensor]:
+    def forward(self, *args, **kwargs) -> torch.Tensor:
         # Make sure that all dropouts are enabled
         for dropout in self._dropouts:
             dropout.train()
 
-        sample_size = kwargs.pop('sample_size', None)
-        if sample_size is None:
-            return self._wrapped(*args, **kwargs)
+        sample_size = kwargs.pop('sample_size', self.sample_size)
 
-        return [self._wrapped(*args, **kwargs) for _ in range(sample_size)]
+        return torch.stack(
+            [self._wrapped(*args, **kwargs) for _ in range(sample_size)], dim=BAYESIAN_SAMPLE_DIM)

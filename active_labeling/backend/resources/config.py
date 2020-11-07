@@ -1,9 +1,6 @@
 from flask_restful import Resource, reqparse
 
-from active_labeling.backend.loggers import get_logger
-from active_labeling.config import ActiveLearningConfig
-
-_LOGGER = get_logger(__name__)
+from active_labeling.config import LearningConfig
 
 
 class Config(Resource):
@@ -16,7 +13,7 @@ class Config(Resource):
         self._parser.add_argument('multiclass', type=str, location='json')
 
     @classmethod
-    def instantiate(cls, config: ActiveLearningConfig):
+    def instantiate(cls, config: LearningConfig):
         cls._config = config
         return cls
 

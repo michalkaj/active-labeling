@@ -1,3 +1,4 @@
+from __future__ import annotations
 from itertools import compress
 from pathlib import Path
 from typing import Sequence, Dict, Optional, Callable, Union
@@ -49,15 +50,17 @@ class ActiveDataset(Dataset):
 
     def _get_label(self, path):
         if not self._train:
-            return 0
+            return -1
         label_str = self.labels[path]
         return self.label_mapping[label_str]
 
     def __len__(self):
-        return len(self._labeled_pool) if self._train else len(self.not_labeled_pool)
+        return len(self._labeled_pool if self._train else self.not_labeled_pool)
 
     def add_labels(self, labels: Dict[Path, str]) -> None:
         labeled_mask = [path in labels for path in self.not_labeled_pool]
+        # labels: cat/1312.jpg
+        # pool: full/path/to/cat.1312.jpg
         labeled, not_labeled = _divide_pool(self.not_labeled_pool, labeled_mask)
 
         self._labeled_pool.extend(labeled)
@@ -65,11 +68,11 @@ class ActiveDataset(Dataset):
 
         self.labels.update(labels)
 
-    def train(self) -> 'ActiveDataset':
+    def train(self) -> ActiveDataset:
         self._train = True
         return self
 
-    def evaluate(self) -> 'ActiveDataset':
+    def evaluate(self) -> ActiveDataset:
         self._train = False
         return self
 
