@@ -1,9 +1,7 @@
-import math
 from typing import Dict
 
 import pytorch_lightning as pl
 import torch
-import torch.nn.functional as F
 from pytorch_lightning.metrics import Metric
 from torch import nn
 from torch.optim import Adam
@@ -16,12 +14,14 @@ class TrainingSystem(pl.LightningModule):
     def __init__(self,
                  model: MonteCarloWrapper,
                  metrics: Dict[str, Metric],
-                 learning_rate: float = 1e-3):
+                 learning_rate: float = 1e-3,
+                 test_sample_size: int = 10):
         super().__init__()
         self._model = model
         self._loss = nn.CrossEntropyLoss()
         self.metrics = metrics
         self._learning_rate = learning_rate
+        self._test_sample_size = test_sample_size
 
     def forward(self, x, **kwargs):
         return self._model(x, **kwargs)
@@ -29,17 +29,14 @@ class TrainingSystem(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         images, labels = batch['image'], batch['label']
         logits = self.forward(images, sample_size=1).squeeze(BAYESIAN_SAMPLE_DIM)
-        # logits = F.log_softmax(logits, dim=1)
         loss = self._loss(logits, labels)
         return loss
 
     def validation_step(self, batch, batch_idx):
         images, labels = batch['image'], batch['label']
         with torch.no_grad():
-            logits = self.forward(images)
-            # logits = F.log_softmax(logits, dim=1)
-            # prediction = torch.logsumexp(
-            #     logits, dim=BAYESIAN_SAMPLE_DIM) #- math.log(self._model.sample_size)
+            logits = self.forward(
+                images, sample_size=self._test_sample_size).mean(dim=BAYESIAN_SAMPLE_DIM)
 
         y_pred = logits.argmax(-1)
         return y_pred.detach(), labels.detach()
