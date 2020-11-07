@@ -25,11 +25,11 @@ def _divide_pool(pool: Sequence, mask: Sequence[bool]):
 class ActiveDataset(Dataset):
     def __init__(self,
                  pool: Sequence[Path],
-                 labels: Dict[Union[str, Path], int],
+                 labels: Dict[Path, int],
                  all_labels: OrderedSet[str],
                  train: bool = True,
                  transform: Optional[Callable[[Image], Tensor]] = None):
-        self.labels = {Path(path): label for path, label in labels.items()}
+        self.labels = {path: label for path, label in labels.items()}
         self.label_mapping = {label: i for i, label in enumerate(all_labels)}
 
         labeled_mask = [path in self.labels for path in pool]
@@ -58,15 +58,20 @@ class ActiveDataset(Dataset):
         return len(self._labeled_pool if self._train else self.not_labeled_pool)
 
     def add_labels(self, labels: Dict[Path, str]) -> None:
+        self._validate(labels)
+
         labeled_mask = [path in labels for path in self.not_labeled_pool]
-        # labels: cat/1312.jpg
-        # pool: full/path/to/cat.1312.jpg
         labeled, not_labeled = _divide_pool(self.not_labeled_pool, labeled_mask)
 
         self._labeled_pool.extend(labeled)
         self._not_labeled_pool = not_labeled
 
         self.labels.update(labels)
+
+    def _validate(self, labels: Dict[Path, str]):
+        intersecting_keys = set(labels.keys()).intersection(set(self.labels.keys()))
+        if intersecting_keys:
+            raise ValueError(f"Some of the samples are already labeled: {intersecting_keys}")
 
     def train(self) -> ActiveDataset:
         self._train = True
@@ -85,14 +90,13 @@ class Reducer:
 
     def __enter__(self):
         length = len(self._dataset.not_labeled_pool)
-        indices = np.arange(length)
-        np.random.shuffle(indices)
-        subset = indices[:int(self._dataset_frac * length)]
+        indices = np.random.permutation(length)
+        subset_indices = indices[:int(self._dataset_frac * length)]
         mask = np.zeros(length, dtype=np.bool)
-        mask[subset] = 1
+        mask[subset_indices] = 1
         self._dataset.not_labeled_pool, self.__container = _divide_pool(
             self._dataset.not_labeled_pool, mask)
-        return self._dataset, subset
+        return self._dataset, subset_indices
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._dataset.not_labeled_pool = self._dataset.not_labeled_pool + self.__container

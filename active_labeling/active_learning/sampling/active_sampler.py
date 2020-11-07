@@ -26,7 +26,7 @@ class ActiveSampler(BaseSampler):
 
         with Reducer(active_dataset, self._config.pool_size) as (reduced_dataset, indices_subset):
             logits = self._compute_logits(reduced_dataset)
-        _, indices = self._acquisition_func(logits, batch_size)
+        indices = self._acquisition_func(logits, batch_size)
         indices = indices_subset[indices]
         return [active_dataset.not_labeled_pool[i] for i in indices]
 
