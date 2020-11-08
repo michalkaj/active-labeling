@@ -42,7 +42,7 @@ class TrainingSystem(pl.LightningModule):
 
         y_pred = logits.argmax(-1)
 
-        self.metrics['loss'].update(loss)
+        self.metrics['loss'].update(loss.detach().cpu())
 
         return y_pred.detach().cpu(), labels.detach().cpu()
 
