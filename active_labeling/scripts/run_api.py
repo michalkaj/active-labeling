@@ -14,6 +14,7 @@ from active_labeling.config import LearningConfig
 
 
 def get_dataset(data_path: Path, labels_path: Path, all_labels: OrderedSet[str]) -> ActiveDataset:
+    label_to_ind = {l: i for i, l in enumerate(all_labels)}
     image_paths = discover_paths(data_path, {'png', 'jpg'})
     labels_json = load_json_file(labels_path)
     annotations = {(data_path / path): label for path, label in labels_json['annotations'].items()}
@@ -26,9 +27,8 @@ def get_dataset(data_path: Path, labels_path: Path, all_labels: OrderedSet[str])
     return ActiveDataset(
         image_paths,
         annotations,
-        all_labels,
-        train=True,
         transform=transform,
+        target_transform=lambda l: label_to_ind[l],
     )
 
 
@@ -43,7 +43,7 @@ if __name__ == '__main__':
         early_stopping_metric='accuracy',
         pool_size=0.1,
         dataloader_kwargs={'batch_size': 16},
-        initial_training_set_size=230,
+        initial_training_set_size=60,
     )
 
     cnn = ConvNet(

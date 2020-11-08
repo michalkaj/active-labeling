@@ -11,13 +11,14 @@ from torch.utils.data import Dataset
 from torchvision.transforms import ToTensor
 
 
-def _divide_pool(pool: Sequence, mask: Sequence[bool]):
-    labeled_pool = list(compress(pool, mask))
-    not_labeled_pool = list(compress(pool, np.logical_not(mask)))
-
-    assert len(labeled_pool) + len(not_labeled_pool) == len(pool)
-
-    return labeled_pool, not_labeled_pool
+def _divide_pool(pool: Sequence, keys):
+    first_part, second_part = [], []
+    for item in pool:
+        if item in keys:
+            first_part.append(item)
+        else:
+            second_part.append(item)
+    return first_part, second_part
 
 
 class ActiveDataset(Dataset):
@@ -29,8 +30,7 @@ class ActiveDataset(Dataset):
                  target_transform: Optional[Callable[[str], int]] = None):
         self.labels = {path: label for path, label in labels.items()}
 
-        labeled_mask = [path in self.labels for path in pool]
-        self._labeled_pool, self.not_labeled_pool = _divide_pool(pool, labeled_mask)
+        self._labeled_pool, self.not_labeled_pool = _divide_pool(pool, self.labels)
         self._train = train
         self._transform = transform if transform else ToTensor()
         self._target_transform = target_transform or (lambda x: x)
@@ -58,8 +58,7 @@ class ActiveDataset(Dataset):
     def add_labels(self, labels: Dict[Path, str]) -> None:
         self._validate(labels)
 
-        labeled_mask = [path in labels for path in self.not_labeled_pool]
-        labeled, not_labeled = _divide_pool(self.not_labeled_pool, labeled_mask)
+        labeled, not_labeled = _divide_pool(self.not_labeled_pool, labels)
 
         self._labeled_pool.extend(labeled)
         self._not_labeled_pool = not_labeled
@@ -87,14 +86,11 @@ class Reducer:
         self.__container = None
 
     def __enter__(self):
-        length = len(self._dataset.not_labeled_pool)
-        indices = np.random.permutation(length)
-        subset_indices = indices[:int(self._dataset_frac * length)]
-        mask = np.zeros(length, dtype=np.bool)
-        mask[subset_indices] = 1
+        length = int(len(self._dataset.not_labeled_pool) * self._dataset_frac)
+        reduced_paths = np.random.choice(self._dataset.not_labeled_pool, size=length, replace=False)
         self._dataset.not_labeled_pool, self.__container = _divide_pool(
-            self._dataset.not_labeled_pool, mask)
-        return self._dataset, subset_indices
+            self._dataset.not_labeled_pool, set(reduced_paths))
+        return self._dataset
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._dataset.not_labeled_pool = self._dataset.not_labeled_pool + self.__container

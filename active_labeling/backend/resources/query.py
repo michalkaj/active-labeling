@@ -40,7 +40,12 @@ class Query(Resource):
                     ):
         cls._config = config
         cls._learner = learner
-        cls._active_sampler = ActiveSampler(learner, BALD, config)
+        cls._active_sampler = ActiveSampler(learner, BALD,
+                                            bayesian_sample_size=config.bayesian_sample_size,
+                                            pool_size_reduction=config.pool_size,
+                                            device=config.device,
+                                            dataloader_kwargs=config.dataloader_kwargs,
+                                            num_classes=len(config.labels))
         cls._random_sampler = RandomSampler()
         cls._train_dataset = active_dataset
         cls._valid_dataset = valid_dataset
