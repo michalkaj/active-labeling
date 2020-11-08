@@ -26,11 +26,13 @@ class MonteCarloWrapper(nn.Module):
         self._wrapped.load_state_dict(deepcopy(self._wrapped_initial_state_dict))
 
     def forward(self, *args, **kwargs) -> torch.Tensor:
-        # Make sure that all dropouts are enabled
-        for dropout in self._dropouts:
-            dropout.train()
-
         sample_size = kwargs.pop('sample_size', self.sample_size)
+        deterministic = kwargs.pop('deterministic', False)
+
+        if not deterministic:
+            # Make sure that all dropouts are enabled
+            for dropout in self._dropouts:
+                dropout.train()
 
         return torch.stack(
             [self._wrapped(*args, **kwargs) for _ in range(sample_size)], dim=BAYESIAN_SAMPLE_DIM)

@@ -61,7 +61,7 @@ class ActiveDataset(Dataset):
         labeled, not_labeled = _divide_pool(self.not_labeled_pool, labels)
 
         self._labeled_pool.extend(labeled)
-        self._not_labeled_pool = not_labeled
+        self.not_labeled_pool = not_labeled
 
         self.labels.update(labels)
 
