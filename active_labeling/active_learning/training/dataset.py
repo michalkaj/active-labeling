@@ -1,4 +1,3 @@
-from __future__ import annotations
 from itertools import compress
 from pathlib import Path
 from typing import Sequence, Dict, Optional, Callable, Union
@@ -7,7 +6,6 @@ import PIL
 import numpy as np
 import torch
 from PIL.Image import Image
-from ordered_set import OrderedSet
 from torch import Tensor
 from torch.utils.data import Dataset
 from torchvision.transforms import ToTensor
@@ -26,16 +24,16 @@ class ActiveDataset(Dataset):
     def __init__(self,
                  pool: Sequence[Path],
                  labels: Dict[Path, int],
-                 all_labels: OrderedSet[str],
                  train: bool = True,
-                 transform: Optional[Callable[[Image], Tensor]] = None):
+                 transform: Optional[Callable[[Image], Tensor]] = None,
+                 target_transform: Optional[Callable[[str], int]] = None):
         self.labels = {path: label for path, label in labels.items()}
-        self.label_mapping = {label: i for i, label in enumerate(all_labels)}
 
         labeled_mask = [path in self.labels for path in pool]
         self._labeled_pool, self.not_labeled_pool = _divide_pool(pool, labeled_mask)
         self._train = train
         self._transform = transform if transform else ToTensor()
+        self._target_transform = target_transform or (lambda x: x)
 
     def __getitem__(self, index: int) -> Dict[str, Union[torch.Tensor, Optional[int]]]:
         path = self._get_example(index)
@@ -51,8 +49,8 @@ class ActiveDataset(Dataset):
     def _get_label(self, path):
         if not self._train:
             return -1
-        label_str = self.labels[path]
-        return self.label_mapping[label_str]
+        label = self.labels[path]
+        return self._target_transform(label)
 
     def __len__(self):
         return len(self._labeled_pool if self._train else self.not_labeled_pool)
@@ -73,11 +71,11 @@ class ActiveDataset(Dataset):
         if intersecting_keys:
             raise ValueError(f"Some of the samples are already labeled: {intersecting_keys}")
 
-    def train(self) -> ActiveDataset:
+    def train(self) -> 'ActiveDataset':
         self._train = True
         return self
 
-    def evaluate(self) -> ActiveDataset:
+    def evaluate(self) -> 'ActiveDataset':
         self._train = False
         return self
 
