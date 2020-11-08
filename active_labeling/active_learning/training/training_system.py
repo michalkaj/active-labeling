@@ -39,7 +39,7 @@ class TrainingSystem(pl.LightningModule):
                 images, sample_size=self._test_sample_size).mean(dim=BAYESIAN_SAMPLE_DIM)
 
         y_pred = logits.argmax(-1)
-        return y_pred.detach(), labels.detach()
+        return y_pred.detach().cpu(), labels.detach().cpu()
 
     def on_validation_epoch_start(self) -> None:
         for metric in self.metrics.values():
