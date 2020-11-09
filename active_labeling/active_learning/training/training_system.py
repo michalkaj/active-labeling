@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Optional
 
 import pytorch_lightning as pl
 import torch
@@ -15,7 +15,7 @@ class TrainingSystem(pl.LightningModule):
                  model: MonteCarloWrapper,
                  metrics: Dict[str, Metric],
                  learning_rate: float = 1e-3,
-                 test_sample_size: int = 10):
+                 test_sample_size: Optional[int] = None):
         super().__init__()
         self._model = model
         self._loss = F.cross_entropy
@@ -36,8 +36,12 @@ class TrainingSystem(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         images, labels = batch['image'], batch['label']
         with torch.no_grad():
+            if self._test_sample_size is None:
+                kwargs = {'sample_size': 1, 'deterministic': True}
+            else:
+                kwargs = {'sample_size': self._test_sample_size}
             logits = self.forward(
-                images, sample_size=self._test_sample_size).mean(dim=BAYESIAN_SAMPLE_DIM)
+                images, **kwargs).mean(dim=BAYESIAN_SAMPLE_DIM)
             loss = self._loss(logits, labels, reduction='none')
 
         y_pred = logits.argmax(-1)
