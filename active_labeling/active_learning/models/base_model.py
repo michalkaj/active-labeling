@@ -50,7 +50,7 @@ class ConvNet(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         features = self._feature_extractor(x)
-        features = torch.flatten(features, 1)
+        features = torch.flatten(features, start_dim=1)
         return self._classifier(features)
 
 

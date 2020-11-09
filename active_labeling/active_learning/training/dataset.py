@@ -1,4 +1,3 @@
-from itertools import compress
 from pathlib import Path
 from typing import Sequence, Dict, Optional, Callable, Union
 
@@ -26,19 +25,22 @@ class ActiveDataset(Dataset):
                  pool: Sequence[Path],
                  labels: Dict[Path, int],
                  train: bool = True,
-                 transform: Optional[Callable[[Image], Tensor]] = None,
+                 train_transform: Optional[Callable[[Image], Tensor]] = None,
+                 evaluate_transform: Optional[Callable[[Image], Tensor]] = None,
                  target_transform: Optional[Callable[[str], int]] = None):
         self.labels = {path: label for path, label in labels.items()}
 
         self._labeled_pool, self.not_labeled_pool = _divide_pool(pool, self.labels)
         self._train = train
-        self._transform = transform if transform else ToTensor()
+        self._train_transform = train_transform if train_transform else ToTensor()
+        self._evaluate_transform = evaluate_transform if evaluate_transform else self._train_transform
         self._target_transform = target_transform or (lambda x: x)
 
     def __getitem__(self, index: int) -> Dict[str, Union[torch.Tensor, Optional[int]]]:
         path = self._get_example(index)
         image = PIL.Image.open(path)
-        image = self._transform(image)
+
+        image = self._train_transform(image) if self._train else self._evaluate_transform(image)
 
         return {'image': image, 'label': self._get_label(path)}
 

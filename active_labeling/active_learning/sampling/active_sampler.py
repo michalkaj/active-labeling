@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Callable, Sequence, Optional, Dict, Any
 
+import numpy as np
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
@@ -19,6 +20,7 @@ class ActiveSampler(BaseSampler):
                  device: torch.device = torch.device('cpu'),
                  dataloader_kwargs: Optional[Dict[str, Any]] = None,
                  num_classes: int = 10,
+                 shuffle_prob: float = 0.1,
                  ):
         self._model = model
         self._acquisition_func = acquisition_func
@@ -27,13 +29,15 @@ class ActiveSampler(BaseSampler):
         self._device = device
         self._dataloader_kwargs = dataloader_kwargs or {}
         self._num_classes = num_classes
+        self._shuffle_prob = shuffle_prob
 
     def sample(self,
                active_dataset: ActiveDataset,
                sample_size: int) -> Sequence[Path]:
         with Reducer(active_dataset, self._pool_size_reduction) as reduced_dataset:
             logits = self._compute_logits(reduced_dataset)
-            indices = self._acquisition_func(logits, sample_size)
+            scores = self._acquisition_func(logits)
+            indices = self._get_indices_to_query(scores, sample_size)
             paths_to_query = [reduced_dataset.not_labeled_pool[i] for i in indices]
         return paths_to_query
 
@@ -65,3 +69,9 @@ class ActiveSampler(BaseSampler):
             start = end
 
         return logits
+
+    def _get_indices_to_query(self, scores, acquisition_batch_size):
+        shuffle_indices = torch.nonzero(torch.rand(len(scores)) < self._shuffle_prob)
+        scores[shuffle_indices] = scores[np.random.permutation(shuffle_indices)]
+        _, indices = torch.topk(scores, k=acquisition_batch_size)
+        return indices
