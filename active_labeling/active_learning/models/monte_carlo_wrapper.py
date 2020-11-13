@@ -22,8 +22,14 @@ class MonteCarloWrapper(nn.Module):
             else:
                 yield from self._get_dropouts(layer)
 
-    def reset_weights(self):
-        self._wrapped.load_state_dict(deepcopy(self._wrapped_initial_state_dict))
+    def reset_weights(self, only_fc=False):
+        if only_fc:
+            def reset(layer):
+                if isinstance(layer, nn.Linear):
+                    layer.reset_parameters()
+            self._wrapped.apply(reset)
+        else:
+            self._wrapped.load_state_dict(deepcopy(self._wrapped_initial_state_dict))
 
     def forward(self, *args, **kwargs) -> torch.Tensor:
         sample_size = kwargs.pop('sample_size', self.sample_size)
