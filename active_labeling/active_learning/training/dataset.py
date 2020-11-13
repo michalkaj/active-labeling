@@ -1,5 +1,6 @@
+import abc
 from pathlib import Path
-from typing import Sequence, Dict, Optional, Callable, Union
+from typing import Sequence, Dict, Optional, Callable, Union, Hashable
 
 import PIL
 import numpy as np
@@ -20,44 +21,44 @@ def _divide_pool(pool: Sequence, keys):
     return first_part, second_part
 
 
-class ActiveDataset(Dataset):
+class ActiveDataset(Dataset, abc.ABC):
     def __init__(self,
-                 pool: Sequence[Path],
-                 labels: Dict[Path, int],
-                 train: bool = True,
+                 pool: Sequence[Hashable],
+                 labels: Dict[Hashable, int],
                  train_transform: Optional[Callable[[Image], Tensor]] = None,
                  evaluate_transform: Optional[Callable[[Image], Tensor]] = None,
                  target_transform: Optional[Callable[[str], int]] = None):
-        self.labels = {path: label for path, label in labels.items()}
-
+        self.labels = labels
         self._labeled_pool, self.not_labeled_pool = _divide_pool(pool, self.labels)
-        self._train = train
         self._train_transform = train_transform or ToTensor()
         self._evaluate_transform = evaluate_transform or self._train_transform
         self._target_transform = target_transform or (lambda x: x)
+        self._train = True
 
     def __getitem__(self, index: int) -> Dict[str, Union[torch.Tensor, Optional[int]]]:
-        path = self._get_example(index)
-        image = PIL.Image.open(path)
+        pool = self._labeled_pool if self._train else self.not_labeled_pool
+        key = pool[index]
+        image = self._get_example(key)
+        label = self._get_label(key)
 
         image = self._train_transform(image) if self._train else self._evaluate_transform(image)
 
-        return {'image': image, 'label': self._get_label(path)}
+        return {'image': image, 'label': label}
 
-    def _get_example(self, index: int) -> Path:
-        pool = self._labeled_pool if self._train else self.not_labeled_pool
-        return pool[index]
+    @abc.abstractmethod
+    def _get_example(self, index: int) -> np.ndarray:
+        pass
 
-    def _get_label(self, path):
+    def _get_label(self, key: Hashable):
         if not self._train:
             return -1
-        label = self.labels[path]
+        label = self.labels[key]
         return self._target_transform(label)
 
     def __len__(self):
         return len(self._labeled_pool if self._train else self.not_labeled_pool)
 
-    def add_labels(self, labels: Dict[Path, str]) -> None:
+    def add_labels(self, labels: Dict[Hashable, str]) -> None:
         self._validate(labels)
 
         labeled, not_labeled = _divide_pool(self.not_labeled_pool, labels)
@@ -67,7 +68,7 @@ class ActiveDataset(Dataset):
 
         self.labels.update(labels)
 
-    def _validate(self, labels: Dict[Path, str]):
+    def _validate(self, labels: Dict[Hashable, str]):
         intersecting_keys = set(labels.keys()).intersection(set(self.labels.keys()))
         if intersecting_keys:
             raise ValueError(f"Some of the samples are already labeled: {intersecting_keys}")
@@ -79,6 +80,46 @@ class ActiveDataset(Dataset):
     def evaluate(self) -> 'ActiveDataset':
         self._train = False
         return self
+
+
+class FileDataset(ActiveDataset):
+    def __init__(self,
+                 pool: Sequence[Path],
+                 labels: Dict[Path, int],
+                 train_transform: Optional[Callable[[Image], Tensor]] = None,
+                 evaluate_transform: Optional[Callable[[Image], Tensor]] = None,
+                 target_transform: Optional[Callable[[str], int]] = None):
+        super().__init__(
+            pool=pool,
+            labels=labels,
+            train_transform=train_transform,
+            evaluate_transform=evaluate_transform,
+            target_transform=target_transform,
+        )
+
+    def _get_example(self, key: Path) -> Image:
+        return PIL.Image.open(key)
+
+
+class InMemoryDataset(ActiveDataset):
+    def __init__(self,
+                 pool: np.ndarray,
+                 labels: Dict[int, int],
+                 train_transform: Optional[Callable[[Image], Tensor]] = None,
+                 evaluate_transform: Optional[Callable[[Image], Tensor]] = None,
+                 target_transform: Optional[Callable[[str], int]] = None):
+        self._numpy_pool = pool
+        super().__init__(
+            pool=np.arange(len(pool)),
+            labels=labels,
+            train_transform=train_transform,
+            evaluate_transform=evaluate_transform,
+            target_transform=target_transform,
+        )
+
+    def _get_example(self, key: int) -> Image:
+        array = self._numpy_pool[key]
+        return PIL.Image.fromarray(array)
 
 
 class Reducer:

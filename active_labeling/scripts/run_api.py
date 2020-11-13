@@ -7,7 +7,7 @@ from pytorch_lightning.metrics import Accuracy
 from active_labeling.active_learning.models.base_model import ConvNet
 from active_labeling.active_learning.models.monte_carlo_wrapper import \
     MonteCarloWrapper
-from active_labeling.active_learning.training.dataset import ActiveDataset
+from active_labeling.active_learning.training.dataset import ActiveDataset, FileDataset
 from active_labeling.backend.api import ActiveLearningAPI
 from active_labeling.backend.file_utils import load_json_file, discover_paths
 from active_labeling.config import LearningConfig
@@ -24,10 +24,10 @@ def get_dataset(data_path: Path, labels_path: Path, all_labels: OrderedSet[str])
         tvt.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
 
-    return ActiveDataset(
+    return FileDataset(
         image_paths,
         annotations,
-        transform=transform,
+        train_transform=transform,
         target_transform=lambda l: label_to_ind[l],
     )
 
@@ -59,6 +59,8 @@ if __name__ == '__main__':
     valid_dataset = get_dataset(Path('/media/data/data/cifar/train'),
                                 Path('valid_labels.json'), config.labels)
 
+    for i in active_dataset:
+        print(i)
     active_learning = ActiveLearningAPI(
         learner=bayesian_cnn,
         active_dataset=active_dataset,
@@ -66,37 +68,3 @@ if __name__ == '__main__':
         config=config,
     )
     active_learning.run()
-
-    #
-    # js = Path('./train_labels.json')
-    # test_data_path = Path('/media/data/data/cifar/train')
-    # paths = list(test_data_path.rglob('*.png'))
-    # shuffle(paths)
-    # di = {'labels': set(), 'annotations': {}}
-    #
-    # for p in paths[:2000]:
-    #     name = str(p.relative_to(test_data_path))
-    #     label = p.parent.stem
-    #     di['labels'].add(label)
-    #     di['annotations'][name] = label
-    #
-    # di['labels'] = list(di['labels'])
-    # with js.open('wt') as f:
-    #     json.dump(di, f, indent=4)
-    #
-    #
-    # test_data_path = Path('/media/data/data/cifar/test')
-    # paths = list(test_data_path.rglob('*.png'))
-    # shuffle(paths)
-    # di = {'labels': set(), 'annotations': {}}
-    # js = Path('./valid_labels.json')
-    # for p in paths[:2000]:
-    #     name = str(p.relative_to(test_data_path))
-    #     label = p.parent.stem
-    #     di['labels'].add(label)
-    #     di['annotations'][name] = label
-    #
-    # di['labels'] = list(di['labels'])
-    # with js.open('wt') as f:
-    #     json.dump(di, f, indent=4)
-    #
