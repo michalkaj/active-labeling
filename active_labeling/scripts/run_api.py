@@ -5,7 +5,7 @@ from ordered_set import OrderedSet
 from pytorch_lightning.metrics import Accuracy
 
 from active_labeling.active_learning.models.base_model import ConvNet
-from active_labeling.active_learning.models.monte_carlo_approximation import \
+from active_labeling.active_learning.models.monte_carlo_wrapper import \
     MonteCarloWrapper
 from active_labeling.active_learning.training.dataset import ActiveDataset
 from active_labeling.backend.api import ActiveLearningAPI

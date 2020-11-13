@@ -42,7 +42,7 @@ class TestReducer(unittest.TestCase):
         labels = {path: Mock() for path in paths[:5]}
         dataset = ActiveDataset(paths, labels, OrderedSet(labels.values()))
 
-        with Reducer(dataset, 0.1) as (test_dataset, test_indices):
+        with Reducer(dataset, 0.1) as test_dataset:
             self.assertTrue(math.isclose(100, len(test_dataset.evaluate()), abs_tol=10))
 
         self.assertEqual(995, len(test_dataset.evaluate()))

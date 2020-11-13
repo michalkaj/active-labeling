@@ -5,11 +5,6 @@ import torch.nn.functional as F
 
 
 def BALD(logits: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-    """ I(y;ω | x, Dtrain) = H(y | x, Dtrain) − Ep(ω | Dtrain)[H(y | x, ω, Dtrain)]
-        1. The first term looks for images that have high entropy in the average output
-        2. The second term penalizes images where many of the sampled models are not confident about.
-         This keeps only images where the models disagree on.
-    """
     probs = F.softmax(logits, dim=-1)  # [n, sample_size, classes]
     expected_entropy = -_x_log_x(probs).sum(dim=-1).mean(dim=1)  # [n]
     expected_prob = probs.mean(dim=1)  # [n, classes]

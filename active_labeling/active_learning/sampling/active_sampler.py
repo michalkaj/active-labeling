@@ -71,7 +71,10 @@ class ActiveSampler(BaseSampler):
         return logits
 
     def _get_indices_to_query(self, scores, acquisition_batch_size):
-        shuffle_indices = torch.nonzero(torch.rand(len(scores)) < self._shuffle_prob)
+        shuffle_indices = torch.nonzero(
+            torch.rand(len(scores)) < self._shuffle_prob,
+            as_tuple=False
+        )
         scores[shuffle_indices] = scores[np.random.permutation(shuffle_indices)]
         _, indices = torch.topk(scores, k=acquisition_batch_size)
         return indices

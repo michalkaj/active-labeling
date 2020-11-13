@@ -1,19 +1,29 @@
 import unittest
-from unittest.mock import Mock, MagicMock
+from unittest.mock import MagicMock
 
-from active_labeling.backend.api import ActiveLearningAPI
+import flask_restful
+from flask import Flask
+
+from active_labeling.backend.resources.config import Config
 
 
 class TestConfig(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls) -> None:
-        cls._config = MagicMock()
-        cls._app = ActiveLearningAPI(
-            learner=Mock(),
-            active_dataset=Mock(),
-            valid_dataset=Mock(),
-            config=cls._config,
-        )._app.test_client()
+    def setUp(self) -> None:
+        self._app = Flask(__name__)
+        self._api = flask_restful.Api(self._app)
 
     def test_get_config(self):
-        self.assertTrue(True)  # TODO
+        labels = ['1', '2', '3']
+        batch_size = 16
+        pool_size = 0.1
+        resource = Config.instantiate(MagicMock(
+            labels=labels, batch_size=batch_size, pool_size=pool_size,
+        ))
+        self._api.add_resource(resource, '/config', endpoint=Config.endpoint)
+
+        response = self._app.test_client().get('/config')
+
+        self.assertDictEqual(
+            {'labels': labels, 'batch_size': batch_size, 'pool_size': pool_size},
+            response.json,
+        )

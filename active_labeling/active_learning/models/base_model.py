@@ -37,7 +37,7 @@ class ConvNet(nn.Module):
         return nn.Sequential(*layers)
 
     @staticmethod
-    def _create_mlp_layers(num_classes:int, dimensions: Sequence[int], dropout_prob: float) \
+    def _create_mlp_layers(num_classes: int, dimensions: Sequence[int], dropout_prob: float) \
             -> nn.Module:
         layers = []
         for i, (in_dim, out_dim) in enumerate(zip(dimensions[:-1], dimensions[1:])):

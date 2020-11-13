@@ -32,8 +32,8 @@ class ActiveDataset(Dataset):
 
         self._labeled_pool, self.not_labeled_pool = _divide_pool(pool, self.labels)
         self._train = train
-        self._train_transform = train_transform if train_transform else ToTensor()
-        self._evaluate_transform = evaluate_transform if evaluate_transform else self._train_transform
+        self._train_transform = train_transform or ToTensor()
+        self._evaluate_transform = evaluate_transform or self._train_transform
         self._target_transform = target_transform or (lambda x: x)
 
     def __getitem__(self, index: int) -> Dict[str, Union[torch.Tensor, Optional[int]]]:

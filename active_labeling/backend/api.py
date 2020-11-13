@@ -22,7 +22,6 @@ class ActiveLearningAPI:
         self._app = Flask(__name__)
         self._api = Api(self._app)
         CORS(self._app)
-
         self._init_resources(config, learner, active_dataset, valid_dataset)
 
     def _init_resources(self,

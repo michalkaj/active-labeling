@@ -8,6 +8,7 @@ from active_labeling.config import LearningConfig
 
 class Metrics(Resource):
     endpoint = '/metrics'
+
     @classmethod
     def instantiate(cls,
                     config: LearningConfig,

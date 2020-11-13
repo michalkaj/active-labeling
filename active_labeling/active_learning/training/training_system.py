@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Dict, Optional, Callable
 
 import pytorch_lightning as pl
 import torch
@@ -6,7 +6,7 @@ from pytorch_lightning.metrics import Metric
 from torch.nn import functional as F
 from torch.optim import Adam
 
-from active_labeling.active_learning.models.monte_carlo_approximation import BAYESIAN_SAMPLE_DIM, \
+from active_labeling.active_learning.models.monte_carlo_wrapper import BAYESIAN_SAMPLE_DIM, \
     MonteCarloWrapper
 
 
@@ -15,10 +15,11 @@ class TrainingSystem(pl.LightningModule):
                  model: MonteCarloWrapper,
                  metrics: Dict[str, Metric],
                  learning_rate: float = 1e-3,
-                 test_sample_size: Optional[int] = None):
+                 test_sample_size: Optional[int] = None,
+                 loss: Callable = F.cross_entropy):
         super().__init__()
         self._model = model
-        self._loss = F.cross_entropy
+        self._loss = loss
         self.metrics = metrics
         self.metrics['loss'] = _Loss()
         self._learning_rate = learning_rate
@@ -65,7 +66,6 @@ class TrainingSystem(pl.LightningModule):
         return Adam(self._model.parameters(), lr=self._learning_rate)
 
 
-
 class _Loss(Metric):
     def __init__(self, dist_sync_on_step=False):
         super().__init__(dist_sync_on_step=dist_sync_on_step)
@@ -79,4 +79,3 @@ class _Loss(Metric):
 
     def compute(self):
         return self.loss.float() / self.total
-

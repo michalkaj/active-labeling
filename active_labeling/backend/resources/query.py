@@ -7,7 +7,7 @@ from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.metrics import Metric
 from torch.utils.data import Dataset, DataLoader
 
-from active_labeling.active_learning.models.monte_carlo_approximation import \
+from active_labeling.active_learning.models.monte_carlo_wrapper import \
     MonteCarloWrapper
 from active_labeling.active_learning.sampling.acquisition.bald import BALD
 from active_labeling.active_learning.sampling.active_sampler import ActiveSampler

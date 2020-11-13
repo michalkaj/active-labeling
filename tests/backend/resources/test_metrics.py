@@ -1,22 +1,23 @@
 import unittest
 from http import HTTPStatus
-from unittest.mock import Mock, MagicMock
+from unittest.mock import MagicMock
 
-from active_labeling.backend.api import ActiveLearningAPI
+import flask_restful
+from flask import Flask
+
+from active_labeling.backend.resources.metrics import Metrics
 
 
 class TestMetrics(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls) -> None:
-        label = 'test_label'
-        cls._app = ActiveLearningAPI(
-            learner=Mock(),
-            active_dataset=MagicMock(labels={'test_path': label}),
-            valid_dataset=Mock(),
-            config=MagicMock(labels={label}),
-        )._app.test_client()
+    def setUp(self) -> None:
+        self._app = Flask(__name__)
+        self._api = flask_restful.Api(self._app)
 
-    def test_get_config(self):
-        response = self._app.get('/metrics')
+    def test_get_metric(self):
+        metrics = {}
+        resource = Metrics.instantiate(MagicMock(), metrics, MagicMock())
+        self._api.add_resource(resource, '/metrics', endpoint=Metrics.endpoint)
+
+        response = self._app.test_client().get('/metrics')
 
         self.assertEqual(HTTPStatus.OK, response.status_code)
