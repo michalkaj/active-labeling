@@ -59,8 +59,6 @@ if __name__ == '__main__':
     valid_dataset = get_dataset(Path('/media/data/data/cifar/train'),
                                 Path('valid_labels.json'), config.labels)
 
-    for i in active_dataset:
-        print(i)
     active_learning = ActiveLearningAPI(
         learner=bayesian_cnn,
         active_dataset=active_dataset,
