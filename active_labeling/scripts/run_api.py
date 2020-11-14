@@ -4,9 +4,9 @@ import torchvision.transforms as tvt
 from ordered_set import OrderedSet
 from pytorch_lightning.metrics import Accuracy
 
-from active_labeling.active_learning.models.base_model import ConvNet
 from active_labeling.active_learning.models.monte_carlo_wrapper import \
     MonteCarloWrapper
+from active_labeling.active_learning.models.pretrained import get_pretrained_model
 from active_labeling.active_learning.training.dataset import ActiveDataset, FileDataset
 from active_labeling.backend.api import ActiveLearningAPI
 from active_labeling.backend.file_utils import load_json_file, discover_paths
@@ -15,9 +15,10 @@ from active_labeling.config import LearningConfig
 
 def get_dataset(data_path: Path, labels_path: Path, all_labels: OrderedSet[str]) -> ActiveDataset:
     label_to_ind = {l: i for i, l in enumerate(all_labels)}
-    image_paths = discover_paths(data_path, {'png', 'jpg'})
+    image_paths = discover_paths(data_path, {'png', 'jpg'})[:100]
     labels_json = load_json_file(labels_path)
     annotations = {(data_path / path): label for path, label in labels_json['annotations'].items()}
+    annotations = {}
 
     transform = tvt.Compose([
         tvt.ToTensor(),
@@ -46,14 +47,9 @@ if __name__ == '__main__':
         initial_training_set_size=60,
     )
 
-    cnn = ConvNet(
-        num_classes=len(config.labels),
-        conv_channel_dimensions=(3, 32, 64, 128),
-        conv_dropout_prob=0.1,
-        mlp_dimensions=(2048, 128),
-        mlp_dropout_prob=0.1,
-    )
+    cnn = get_pretrained_model()
     bayesian_cnn = MonteCarloWrapper(cnn, config.bayesian_sample_size)
+    bayesian_cnn.reset_weights(True)
 
     active_dataset = get_dataset(data_path, Path('initial_labels2.json'), config.labels)
     valid_dataset = get_dataset(Path('/media/data/data/cifar/train'),
