@@ -47,20 +47,10 @@ class TrainingSystem(pl.LightningModule):
 
         y_pred = logits.argmax(-1)
 
-        self.metrics['loss'].update(loss.detach().cpu())
-
-        return y_pred.detach().cpu(), labels.detach().cpu()
-
-    def on_validation_epoch_start(self) -> None:
-        for metric in self.metrics.values():
-            metric.reset()
-
-    def validation_epoch_end(self, batches):
-        for name, metric_func in self.metrics.items():
-            if name != 'loss':
-                for y_pred, y_true in batches:
-                    metric_func.update(y_pred, y_true)
-            self.log(name, metric_func.compute())
+        self.metrics['loss'](loss.detach().cpu())
+        self.metrics['accuracy'](y_pred.detach().cpu(), labels.detach().cpu())
+        self.log('loss', self.metrics['loss'], on_step=True, on_epoch=True)
+        self.log('accuracy', self.metrics['accuracy'], on_step=True, on_epoch=True)
 
     def configure_optimizers(self):
         return Adam(self._model.parameters(), lr=self._learning_rate)
