@@ -47,8 +47,8 @@ class TrainingSystem(pl.LightningModule):
 
         y_pred = logits.argmax(-1)
 
-        self.log('loss', self.metrics['loss'](loss), on_step=False, on_epoch=True)
-        self.log('accuracy', self.metrics['accuracy'](y_pred, labels), on_step=False, on_epoch=True)
+        self.log('loss', self.metrics['loss'](loss.cpu()), on_step=False, on_epoch=True)
+        self.log('accuracy', self.metrics['accuracy'](y_pred.cpu(), labels.cpu()), on_step=False, on_epoch=True)
 
     def configure_optimizers(self):
         return Adam(self._model.parameters(), lr=self._learning_rate)
