@@ -2,7 +2,8 @@ from typing import Dict, Optional, Callable
 
 import pytorch_lightning as pl
 import torch
-from pytorch_lightning.metrics import Metric
+from pytorch_lightning.callbacks import EarlyStopping
+from pytorch_lightning.metrics import Metric, Accuracy
 from torch.nn import functional as F
 from torch.optim import Adam
 
@@ -13,15 +14,16 @@ from active_labeling.active_learning.models.monte_carlo_wrapper import BAYESIAN_
 class TrainingSystem(pl.LightningModule):
     def __init__(self,
                  model: MonteCarloWrapper,
-                 metrics: Dict[str, Metric],
                  learning_rate: float = 1e-3,
                  test_sample_size: Optional[int] = None,
                  loss: Callable = F.cross_entropy):
         super().__init__()
         self._model = model
         self._loss = loss
-        self.metrics = metrics
-        self.metrics['loss'] = _Loss()
+        self.metrics = {
+            'loss': _Loss(),
+            'accuracy': Accuracy(),
+        }
         self._learning_rate = learning_rate
         self._test_sample_size = test_sample_size
 
@@ -32,6 +34,14 @@ class TrainingSystem(pl.LightningModule):
         images, labels = batch['image'], batch['label']
         logits = self.forward(images, sample_size=1).squeeze(BAYESIAN_SAMPLE_DIM)
         loss = self._loss(logits, labels)
+
+        y_pred = logits.argmax(-1)
+        self.log(
+            'train_accuracy',
+            self.metrics['accuracy'](y_pred.detach().cpu(), labels.detach().cpu()),
+            on_step=False,
+            on_epoch=True
+        )
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -47,8 +57,18 @@ class TrainingSystem(pl.LightningModule):
 
         y_pred = logits.argmax(-1)
 
-        self.log('loss', self.metrics['loss'](loss.detach().cpu()), on_step=False, on_epoch=True)
-        self.log('accuracy', self.metrics['accuracy'](y_pred.detach().cpu(), labels.detach().cpu()), on_step=False, on_epoch=True)
+        self.log(
+            'loss',
+            self.metrics['loss'](loss.detach().cpu()),
+            on_step=False,
+            on_epoch=True
+        )
+        self.log(
+            'val_accuracy',
+            self.metrics['accuracy'](y_pred.detach().cpu(), labels.detach().cpu()),
+            on_step=False,
+            on_epoch=True
+        )
 
     def configure_optimizers(self):
         return Adam(self._model.parameters(), lr=self._learning_rate)
@@ -67,3 +87,20 @@ class _Loss(Metric):
 
     def compute(self):
         return self.loss.float() / self.total
+
+class AccuracyEarlyStopping(EarlyStopping):
+    def __init__(self, monitor, threshold=0.98):
+        super().__init__(
+            monitor,
+        )
+        self._threshold = threshold
+
+    def on_validation_end(self, trainer, pl_module):
+        # override this to disable early stopping at the end of val loop
+        pass
+
+    def on_train_end(self, trainer, pl_module):
+        logs = trainer.logger_connector.callback_metrics
+        current = logs.get(self.monitor)
+        if current.compute() >= self._threshold:
+            trainer.should_stop = True
