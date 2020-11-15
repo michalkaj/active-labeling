@@ -22,6 +22,9 @@ class ActiveWrapper(nn.Module):
         else:
             self._wrapped.load_state_dict(deepcopy(self._wrapped_initial_state_dict))
 
+    def forward(self, *args, **kwargs):
+        return self._wrapped(*args, **kwargs)
+
 
 class MonteCarloWrapper(ActiveWrapper):
     def __init__(self, model: nn.Module, sample_size: int):
