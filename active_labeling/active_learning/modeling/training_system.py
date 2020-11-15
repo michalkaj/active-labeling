@@ -1,7 +1,9 @@
+from copy import deepcopy
 from typing import Optional, Callable
 
 import pytorch_lightning as pl
 import torch
+from pytorch_lightning import Callback
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.metrics import Metric, Accuracy
 from torch.nn import functional as F
@@ -108,3 +110,26 @@ class AccuracyEarlyStopping(EarlyStopping):
         current = logs.get(self.monitor)
         if current.compute() >= self._threshold:
             trainer.should_stop = True
+
+
+class SaveBestModel(Callback):
+    def __init__(self, monitor, min_epochs=20, min_threshold=0.02):
+        self._monitor = monitor
+        self._min_epochs = min_epochs
+        self._min_th = min_threshold
+        self._best_metric = 0
+        self._epoch = 0
+        self._best_weights = None
+
+    def on_validation_end(self, trainer, pl_module: pl.LightningModule):
+        if self._epoch < self._min_epochs:
+            return
+
+        logs = trainer.logger_connector.callback_metrics
+        current = logs.get(self._monitor)
+        if current + self._min_th > self._best_metric:
+            self._best_metric = current
+            self._best_weights = deepcopy(pl_module.state_dict())
+
+    def on_train_epoch_end(self, trainer, pl_module, outputs):
+        self._epoch += 1

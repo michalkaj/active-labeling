@@ -13,11 +13,7 @@ class TestActiveSampler(unittest.TestCase):
         acqusition_return_value = MagicMock(spec=torch.Tensor)
         acquisition_func = MagicMock(return_value=acqusition_return_value)
         bayesian_sample_size = 32
-        sampler = sampler(
-            model=model,
-            acquisition_func=acquisition_func,
-            bayesian_sample_size=bayesian_sample_size,
-        )
+        sampler = Sampler()
         active_dataset = MagicMock()
         reduced_dataset = MagicMock()
 
