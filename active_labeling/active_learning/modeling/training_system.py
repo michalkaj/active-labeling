@@ -32,7 +32,10 @@ class TrainingSystem(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         images, labels = batch['image'], batch['label']
-        logits = self.forward(images, sample_size=1).squeeze(BAYESIAN_SAMPLE_DIM)
+        if isinstance(self._model, MonteCarloWrapper):
+            logits = self.forward(images, sample_size=1).squeeze(BAYESIAN_SAMPLE_DIM)
+        else:
+            logits = self.forward(images)
         loss = self._loss(logits, labels)
 
         y_pred = logits.argmax(-1)
