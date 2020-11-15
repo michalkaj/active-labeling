@@ -34,11 +34,15 @@ class MonteCarloWrapper(nn.Module):
     def forward(self, *args, **kwargs) -> torch.Tensor:
         sample_size = kwargs.pop('sample_size', self.sample_size)
         deterministic = kwargs.pop('deterministic', False)
+        squeeze = kwargs.pop('squeeze', False)
 
         if not deterministic:
             # Make sure that all dropouts are enabled
             for dropout in self._dropouts:
                 dropout.train()
 
-        return torch.stack(
+        result = torch.stack(
             [self._wrapped(*args, **kwargs) for _ in range(sample_size)], dim=BAYESIAN_SAMPLE_DIM)
+        if squeeze:
+            result = result.squeeze(dim=1)
+        return result
