@@ -34,11 +34,12 @@ class ActiveSampler(BaseSampler):
     def sample(self,
                active_dataset: ActiveDataset,
                sample_size: int) -> Sequence[Path]:
-        with Reducer(active_dataset, self._pool_size_reduction) as reduced_dataset:
-            logits = self._compute_logits(reduced_dataset)
-            scores = self._acquisition_func(logits)
-            indices = self._get_indices_to_query(scores, sample_size)
-            paths_to_query = [reduced_dataset.not_labeled_pool[i] for i in indices]
+        # with Reducer(active_dataset, self._pool_size_reduction) as reduced_dataset:
+        reduced_dataset = active_dataset
+        logits = self._compute_logits(reduced_dataset)
+        scores = self._acquisition_func(logits)
+        indices = self._get_indices_to_query(scores, sample_size)
+        paths_to_query = [reduced_dataset.not_labeled_pool[i] for i in indices]
         return paths_to_query
 
     def _compute_logits(self, dataset: ActiveDataset) -> torch.Tensor:
@@ -71,10 +72,10 @@ class ActiveSampler(BaseSampler):
         return logits
 
     def _get_indices_to_query(self, scores, acquisition_batch_size):
-        shuffle_indices = torch.nonzero(
-            torch.rand(len(scores)) < self._shuffle_prob,
-            as_tuple=False
-        )
-        scores[shuffle_indices] = scores[np.random.permutation(shuffle_indices)]
+        # shuffle_indices = torch.nonzero(
+        #     torch.rand(len(scores)) < self._shuffle_prob,
+        #     as_tuple=False
+        # )
+        # scores[shuffle_indices] = scores[np.random.permutation(shuffle_indices)]
         _, indices = torch.topk(scores, k=acquisition_batch_size)
         return indices
