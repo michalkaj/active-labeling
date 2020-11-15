@@ -2,7 +2,7 @@ import unittest
 
 import torch
 
-from active_labeling.active_learning.sampling.acquisition.queries import BALD
+from active_labeling.active_learning.sampling.acquisition.active import BALD
 
 
 class TestBald(unittest.TestCase):

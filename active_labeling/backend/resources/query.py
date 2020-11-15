@@ -8,11 +8,11 @@ from pytorch_lightning.metrics import Metric
 from torch.utils.data import Dataset, DataLoader
 
 from active_labeling.active_learning.dataset import ActiveDataset
-from active_labeling.active_learning.modeling.monte_carlo_wrapper import \
-    MonteCarloWrapper
 from active_labeling.active_learning.modeling.training_system import TrainingSystem
-from active_labeling.active_learning.sampling.base import BaseSampler
-from active_labeling.active_learning.sampling.random import RandomSampler
+from active_labeling.active_learning.modeling.wrappers import \
+    MonteCarloWrapper
+from active_labeling.active_learning.sampling.acquisition.random import RandomQuery
+from active_labeling.active_learning.sampling.sampler import Sampler
 from active_labeling.backend.file_utils import path_to_base64
 from active_labeling.config import LearningConfig
 from active_labeling.settings import DEFAULT_BATCH_SIZE, DEFAULT_POOL_SIZE
@@ -32,7 +32,7 @@ class Query(Resource):
     def instantiate(cls,
                     config: LearningConfig,
                     learner: MonteCarloWrapper,
-                    sampler: BaseSampler,
+                    sampler: Sampler,
                     active_dataset: ActiveDataset,
                     valid_dataset: Dataset,
                     metrics: Dict[str, List[Dict]],
@@ -41,7 +41,7 @@ class Query(Resource):
         cls._config = config
         cls._learner = learner
         cls._active_sampler = sampler
-        cls._random_sampler = RandomSampler()
+        cls._random_sampler = Sampler(RandomQuery())
         cls._train_dataset = active_dataset
         cls._valid_dataset = valid_dataset
         cls._metrics = metrics

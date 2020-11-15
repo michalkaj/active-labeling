@@ -6,7 +6,7 @@ from torch import nn
 from torch.utils.data import Dataset
 
 from active_labeling.active_learning.dataset import ActiveDataset
-from active_labeling.active_learning.sampling.base import BaseSampler
+from active_labeling.active_learning.sampling.sampler import Sampler
 from active_labeling.backend.resources.annotations import Annotations
 from active_labeling.backend.resources.config import Config
 from active_labeling.backend.resources.metrics import Metrics
@@ -17,7 +17,7 @@ from active_labeling.config import LearningConfig
 class ActiveLearningAPI:
     def __init__(self,
                  learner: nn.Module,
-                 sampler: BaseSampler,
+                 sampler: Sampler,
                  active_dataset: ActiveDataset,
                  valid_dataset: Dataset,
                  config: LearningConfig):
@@ -29,7 +29,7 @@ class ActiveLearningAPI:
     def _init_resources(self,
                         config: LearningConfig,
                         learner: nn.Module,
-                        sampler: BaseSampler,
+                        sampler: Sampler,
                         active_dataset: ActiveDataset,
                         valid_dataset: Dataset) -> None:
         metrics = {}

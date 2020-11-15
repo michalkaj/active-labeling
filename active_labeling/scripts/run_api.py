@@ -4,12 +4,12 @@ import torchvision.transforms as tvt
 from ordered_set import OrderedSet
 
 from active_labeling.active_learning.dataset import ActiveDataset, FileDataset
-from active_labeling.active_learning.modeling.monte_carlo_wrapper import \
+from active_labeling.active_learning.modeling.wrappers import \
     MonteCarloWrapper
 from active_labeling.active_learning.modeling.prediction import predict
 from active_labeling.active_learning.modeling.pretrained import get_pretrained_model
-from active_labeling.active_learning.sampling.acquisition.queries import UncertaintyQuery
-from active_labeling.active_learning.sampling.active_sampler import ActiveSampler
+from active_labeling.active_learning.sampling.acquisition.active import UncertaintyQuery, BALDQuery
+from active_labeling.active_learning.sampling.sampler import Sampler
 from active_labeling.backend.api import ActiveLearningAPI
 from active_labeling.backend.file_utils import load_json_file, discover_paths
 from active_labeling.config import LearningConfig
@@ -49,9 +49,9 @@ if __name__ == '__main__':
 
     cnn = get_pretrained_model()
     bayesian_cnn = MonteCarloWrapper(cnn, config.bayesian_sample_size)
-    sampler = ActiveSampler(
-        query=UncertaintyQuery(
-            predict_func=lambda dataset: predict(cnn, dataset, config.dataloader_kwargs),
+    sampler = Sampler(
+        query=BALDQuery(
+            predict_func=lambda dataset: predict(bayesian_cnn, dataset, config.dataloader_kwargs),
             shuffle_prob=0.,
         ),
         pool_size_reduction=config.pool_size,

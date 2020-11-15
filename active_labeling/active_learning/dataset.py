@@ -11,7 +11,7 @@ from torch.utils.data import Dataset
 from torchvision.transforms import ToTensor
 
 
-def _divide_pool(pool: Sequence, keys):
+def divide_pool(pool: Sequence, keys):
     first_part, second_part = [], []
     for item in pool:
         if item in keys:
@@ -29,7 +29,7 @@ class ActiveDataset(Dataset, abc.ABC):
                  evaluate_transform: Optional[Callable[[Image], Tensor]] = None,
                  target_transform: Optional[Callable[[str], int]] = None):
         self.labels = labels
-        self._labeled_pool, self._not_labeled_pool = _divide_pool(pool, self.labels)
+        self._labeled_pool, self._not_labeled_pool = divide_pool(pool, self.labels)
         self._train_transform = train_transform or ToTensor()
         self._evaluate_transform = evaluate_transform or self._train_transform
         self._target_transform = target_transform or (lambda x: x)
@@ -61,7 +61,7 @@ class ActiveDataset(Dataset, abc.ABC):
     def add_labels(self, labels: Dict[Hashable, str]) -> None:
         self._validate(labels)
 
-        labeled, not_labeled = _divide_pool(self._not_labeled_pool, labels)
+        labeled, not_labeled = divide_pool(self._not_labeled_pool, labels)
 
         self._labeled_pool.extend(labeled)
         self._not_labeled_pool = not_labeled
@@ -124,21 +124,3 @@ class InMemoryDataset(ActiveDataset):
     def _get_example(self, key: int) -> Image:
         array = self._numpy_pool[key]
         return PIL.Image.fromarray(array)
-
-
-class Reducer:
-    def __init__(self, dataset: ActiveDataset, dataset_frac: float = 1.):
-        self._dataset = dataset
-        self._dataset_frac = dataset_frac
-        self.__container = None
-
-    def __enter__(self):
-        length = int(len(self._dataset._not_labeled_pool) * self._dataset_frac)
-        reduced_paths = np.random.choice(self._dataset._not_labeled_pool, size=length, replace=False)
-        self._dataset._not_labeled_pool, self.__container = _divide_pool(
-            self._dataset._not_labeled_pool, set(reduced_paths))
-        return self._dataset
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self._dataset._not_labeled_pool = self._dataset._not_labeled_pool + self.__container
-        self.__container = None

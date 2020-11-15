@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Callable
+from typing import Optional, Callable
 
 import pytorch_lightning as pl
 import torch
@@ -7,13 +7,13 @@ from pytorch_lightning.metrics import Metric, Accuracy
 from torch.nn import functional as F
 from torch.optim import Adam
 
-from active_labeling.active_learning.modeling.monte_carlo_wrapper import BAYESIAN_SAMPLE_DIM, \
+from active_labeling.active_learning.modeling.wrappers import BAYESIAN_SAMPLE_DIM, \
     MonteCarloWrapper
 
 
 class TrainingSystem(pl.LightningModule):
     def __init__(self,
-                 model: MonteCarloWrapper,
+                 model: torch.nn.Module,
                  learning_rate: float = 1e-3,
                  test_sample_size: Optional[int] = None,
                  loss: Callable = F.cross_entropy):
@@ -48,11 +48,12 @@ class TrainingSystem(pl.LightningModule):
         images, labels = batch['image'], batch['label']
         with torch.no_grad():
             if self._test_sample_size is None:
-                kwargs = {'sample_size': 1, 'deterministic': True}
+                if isinstance(self._model, MonteCarloWrapper):
+                    logits = self.forward(images, deterministic=True)
+                else:
+                    logits = self.forward(images)
             else:
-                kwargs = {'sample_size': self._test_sample_size}
-            logits = self.forward(
-                images, **kwargs).mean(dim=BAYESIAN_SAMPLE_DIM)
+                logits = self.forward(images).mean(dim=BAYESIAN_SAMPLE_DIM)
             loss = self._loss(logits, labels, reduction='none')
 
         y_pred = logits.argmax(-1)

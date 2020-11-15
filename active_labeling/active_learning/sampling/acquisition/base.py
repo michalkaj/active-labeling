@@ -1,9 +1,8 @@
 import abc
-from typing import Sequence, Callable
+from typing import Sequence
 
 import numpy as np
 import torch
-from torch import Tensor
 
 from active_labeling.active_learning.dataset import ActiveDataset
 
@@ -24,20 +23,4 @@ class BaseQuery(abc.ABC):
 
     @abc.abstractmethod
     def _compute_scores(self, dataset: ActiveDataset) -> np.ndarray:
-        pass
-
-
-class ActiveQuery(BaseQuery):
-    def __init__(self,
-                 predict_func: Callable[[ActiveDataset], Tensor],
-                 shuffle_prob: float=0.):
-        super().__init__(shuffle_prob)
-        self._predict_func = predict_func
-
-    def _compute_scores(self, dataset: ActiveDataset) -> np.ndarray:
-        logits = self._predict_func(dataset).numpy()
-        return self._compute_scores_from_logits(logits)
-
-    @abc.abstractmethod
-    def _compute_scores_from_logits(self, logits: np.ndarray) -> np.ndarray:
         pass
