@@ -11,7 +11,6 @@ from pytorch_lightning.metrics import Metric
 class LearningConfig:
     data_root: Path
     labels: OrderedSet[str]
-    metrics: Dict[str, Metric]
     early_stopping_metric: str
     batch_size: int = 10
     pool_size: float = 0.1

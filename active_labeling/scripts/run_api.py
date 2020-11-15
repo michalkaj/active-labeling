@@ -2,12 +2,14 @@ from pathlib import Path
 
 import torchvision.transforms as tvt
 from ordered_set import OrderedSet
-from pytorch_lightning.metrics import Accuracy
 
-from active_labeling.active_learning.models.monte_carlo_wrapper import \
+from active_labeling.active_learning.dataset import ActiveDataset, FileDataset
+from active_labeling.active_learning.modeling.monte_carlo_wrapper import \
     MonteCarloWrapper
-from active_labeling.active_learning.models.pretrained import get_pretrained_model
-from active_labeling.active_learning.training.dataset import ActiveDataset, FileDataset
+from active_labeling.active_learning.modeling.prediction import predict
+from active_labeling.active_learning.modeling.pretrained import get_pretrained_model
+from active_labeling.active_learning.sampling.acquisition.queries import UncertaintyQuery
+from active_labeling.active_learning.sampling.active_sampler import ActiveSampler
 from active_labeling.backend.api import ActiveLearningAPI
 from active_labeling.backend.file_utils import load_json_file, discover_paths
 from active_labeling.config import LearningConfig
@@ -18,7 +20,6 @@ def get_dataset(data_path: Path, labels_path: Path, all_labels: OrderedSet[str])
     image_paths = discover_paths(data_path, {'png', 'jpg'})[:100]
     labels_json = load_json_file(labels_path)
     annotations = {(data_path / path): label for path, label in labels_json['annotations'].items()}
-    annotations = {}
 
     transform = tvt.Compose([
         tvt.ToTensor(),
@@ -40,16 +41,21 @@ if __name__ == '__main__':
         data_root=data_path,
         labels=OrderedSet(('airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog',
                            'horse', 'ship', 'truck')),
-        metrics={'accuracy': Accuracy()},
-        early_stopping_metric='accuracy',
+        early_stopping_metric='val_accuracy',
         pool_size=0.1,
         dataloader_kwargs={'batch_size': 16},
-        initial_training_set_size=60,
+        initial_training_set_size=10,
     )
 
     cnn = get_pretrained_model()
     bayesian_cnn = MonteCarloWrapper(cnn, config.bayesian_sample_size)
-    bayesian_cnn.reset_weights(True)
+    sampler = ActiveSampler(
+        query=UncertaintyQuery(
+            predict_func=lambda dataset: predict(cnn, dataset, config.dataloader_kwargs),
+            shuffle_prob=0.,
+        ),
+        pool_size_reduction=config.pool_size,
+    )
 
     active_dataset = get_dataset(data_path, Path('initial_labels2.json'), config.labels)
     valid_dataset = get_dataset(Path('/media/data/data/cifar/train'),
@@ -57,6 +63,7 @@ if __name__ == '__main__':
 
     active_learning = ActiveLearningAPI(
         learner=bayesian_cnn,
+        sampler=sampler,
         active_dataset=active_dataset,
         valid_dataset=valid_dataset,
         config=config,

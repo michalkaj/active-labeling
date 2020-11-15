@@ -4,7 +4,7 @@ from typing import Dict, Any, List
 
 from flask_restful import Resource, reqparse
 
-from active_labeling.active_learning.training.dataset import ActiveDataset
+from active_labeling.active_learning.dataset import ActiveDataset
 from active_labeling.config import LearningConfig
 
 

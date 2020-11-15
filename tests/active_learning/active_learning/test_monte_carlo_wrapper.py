@@ -3,8 +3,8 @@ from unittest.mock import Mock, patch
 
 import torch
 
-import active_labeling.active_learning.models.monte_carlo_wrapper as mcw
-from active_labeling.active_learning.models.monte_carlo_wrapper import MonteCarloWrapper
+import active_labeling.active_learning.modeling.monte_carlo_wrapper as mcw
+from active_labeling.active_learning.modeling.monte_carlo_wrapper import MonteCarloWrapper
 
 
 class TestModelWrapper(unittest.TestCase):

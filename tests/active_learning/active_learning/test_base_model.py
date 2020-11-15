@@ -1,6 +1,6 @@
 import unittest
 
-from active_labeling.active_learning.models.base_model import ConvNet
+from active_labeling.active_learning.modeling.base_model import ConvNet
 
 
 class TestConvNet(unittest.TestCase):

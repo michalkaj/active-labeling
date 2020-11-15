@@ -2,7 +2,7 @@ from typing import Dict, Any
 
 from flask_restful import Resource
 
-from active_labeling.active_learning.training.dataset import ActiveDataset
+from active_labeling.active_learning.dataset import ActiveDataset
 from active_labeling.config import LearningConfig
 
 

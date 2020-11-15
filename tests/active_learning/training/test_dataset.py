@@ -4,7 +4,7 @@ from unittest.mock import Mock
 
 from ordered_set import OrderedSet
 
-from active_labeling.active_learning.training.dataset import ActiveDataset, Reducer
+from active_labeling.active_learning.dataset import ActiveDataset, Reducer
 
 
 class TestActiveDataset(unittest.TestCase):

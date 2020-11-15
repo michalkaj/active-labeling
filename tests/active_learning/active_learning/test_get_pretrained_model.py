@@ -3,7 +3,7 @@ import unittest
 from torch import nn
 from torchvision.models import resnet18
 
-from active_labeling.active_learning.models.pretrained import get_pretrained_model
+from active_labeling.active_learning.modeling.pretrained import get_pretrained_model
 
 
 class TestGetPretrained(unittest.TestCase):

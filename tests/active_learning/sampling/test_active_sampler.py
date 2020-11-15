@@ -30,4 +30,4 @@ class TestActiveSampler(unittest.TestCase):
 
             topk.assert_called_with(acqusition_return_value, k=batch_size)
         self.assertSequenceEqual(
-            [reduced_dataset.not_labeled_pool.__getitem__() for _ in indices], samples)
+            [reduced_dataset._not_labeled_pool.__getitem__() for _ in indices], samples)

@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock, MagicMock
 
-from active_labeling.active_learning.training.training_system import TrainingSystem
+from active_labeling.active_learning.modeling.training_system import TrainingSystem
 
 
 class TestTrainingSystem(unittest.TestCase):

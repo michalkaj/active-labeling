@@ -29,14 +29,14 @@ class ActiveDataset(Dataset, abc.ABC):
                  evaluate_transform: Optional[Callable[[Image], Tensor]] = None,
                  target_transform: Optional[Callable[[str], int]] = None):
         self.labels = labels
-        self._labeled_pool, self.not_labeled_pool = _divide_pool(pool, self.labels)
+        self._labeled_pool, self._not_labeled_pool = _divide_pool(pool, self.labels)
         self._train_transform = train_transform or ToTensor()
         self._evaluate_transform = evaluate_transform or self._train_transform
         self._target_transform = target_transform or (lambda x: x)
         self._train = True
 
     def __getitem__(self, index: int) -> Dict[str, Union[torch.Tensor, Optional[int]]]:
-        pool = self._labeled_pool if self._train else self.not_labeled_pool
+        pool = self._labeled_pool if self._train else self._not_labeled_pool
         key = pool[index]
         image = self._get_example(key)
         label = self._get_label(key)
@@ -56,17 +56,21 @@ class ActiveDataset(Dataset, abc.ABC):
         return self._target_transform(label)
 
     def __len__(self):
-        return len(self._labeled_pool if self._train else self.not_labeled_pool)
+        return len(self._labeled_pool if self._train else self._not_labeled_pool)
 
     def add_labels(self, labels: Dict[Hashable, str]) -> None:
         self._validate(labels)
 
-        labeled, not_labeled = _divide_pool(self.not_labeled_pool, labels)
+        labeled, not_labeled = _divide_pool(self._not_labeled_pool, labels)
 
         self._labeled_pool.extend(labeled)
-        self.not_labeled_pool = not_labeled
+        self._not_labeled_pool = not_labeled
 
         self.labels.update(labels)
+
+    def get_examples(self, indices: Sequence[int]) -> Sequence:
+        return [self._not_labeled_pool[i] for i in indices]
+
 
     def _validate(self, labels: Dict[Hashable, str]):
         intersecting_keys = set(labels.keys()).intersection(set(self.labels.keys()))
@@ -129,12 +133,12 @@ class Reducer:
         self.__container = None
 
     def __enter__(self):
-        length = int(len(self._dataset.not_labeled_pool) * self._dataset_frac)
-        reduced_paths = np.random.choice(self._dataset.not_labeled_pool, size=length, replace=False)
-        self._dataset.not_labeled_pool, self.__container = _divide_pool(
-            self._dataset.not_labeled_pool, set(reduced_paths))
+        length = int(len(self._dataset._not_labeled_pool) * self._dataset_frac)
+        reduced_paths = np.random.choice(self._dataset._not_labeled_pool, size=length, replace=False)
+        self._dataset._not_labeled_pool, self.__container = _divide_pool(
+            self._dataset._not_labeled_pool, set(reduced_paths))
         return self._dataset
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self._dataset.not_labeled_pool = self._dataset.not_labeled_pool + self.__container
+        self._dataset._not_labeled_pool = self._dataset._not_labeled_pool + self.__container
         self.__container = None

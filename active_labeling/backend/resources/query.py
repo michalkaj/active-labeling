@@ -7,13 +7,12 @@ from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.metrics import Metric
 from torch.utils.data import Dataset, DataLoader
 
-from active_labeling.active_learning.models.monte_carlo_wrapper import \
+from active_labeling.active_learning.dataset import ActiveDataset
+from active_labeling.active_learning.modeling.monte_carlo_wrapper import \
     MonteCarloWrapper
-from active_labeling.active_learning.sampling.acquisition.bald import BALD
-from active_labeling.active_learning.sampling.active_sampler import ActiveSampler
+from active_labeling.active_learning.modeling.training_system import TrainingSystem
+from active_labeling.active_learning.sampling.base import BaseSampler
 from active_labeling.active_learning.sampling.random import RandomSampler
-from active_labeling.active_learning.training.dataset import ActiveDataset
-from active_labeling.active_learning.training.training_system import TrainingSystem
 from active_labeling.backend.file_utils import path_to_base64
 from active_labeling.config import LearningConfig
 from active_labeling.settings import DEFAULT_BATCH_SIZE, DEFAULT_POOL_SIZE
@@ -33,6 +32,7 @@ class Query(Resource):
     def instantiate(cls,
                     config: LearningConfig,
                     learner: MonteCarloWrapper,
+                    sampler: BaseSampler,
                     active_dataset: ActiveDataset,
                     valid_dataset: Dataset,
                     metrics: Dict[str, List[Dict]],
@@ -40,12 +40,7 @@ class Query(Resource):
                     ):
         cls._config = config
         cls._learner = learner
-        cls._active_sampler = ActiveSampler(learner, BALD,
-                                            bayesian_sample_size=config.bayesian_sample_size,
-                                            pool_size_reduction=config.pool_size,
-                                            device=config.device,
-                                            dataloader_kwargs=config.dataloader_kwargs,
-                                            num_classes=len(config.labels))
+        cls._active_sampler = sampler
         cls._random_sampler = RandomSampler()
         cls._train_dataset = active_dataset
         cls._valid_dataset = valid_dataset
@@ -88,7 +83,7 @@ class Query(Resource):
         valid_loader = DataLoader(self._valid_dataset, **self._config.dataloader_kwargs)
 
         self._learner.reset_weights()
-        training_system = TrainingSystem(self._learner, metrics=self._config.metrics)
+        training_system = TrainingSystem(self._learner)
         self._trainer.fit(
             model=training_system,
             train_dataloader=train_loader,

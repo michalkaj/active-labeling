@@ -1,10 +1,10 @@
 import abc
 from typing import Iterable
 
-import numpy as np
+from active_labeling.active_learning.dataset import ActiveDataset
 
 
 class BaseSampler(abc.ABC):
     @abc.abstractmethod
-    def sample(self, data: np.ndarray, sample_size: int) -> Iterable[int]:
+    def sample(self, active_dataset: ActiveDataset, sample_size: int) -> Iterable[int]:
         pass

@@ -7,7 +7,7 @@ from pytorch_lightning.metrics import Metric, Accuracy
 from torch.nn import functional as F
 from torch.optim import Adam
 
-from active_labeling.active_learning.models.monte_carlo_wrapper import BAYESIAN_SAMPLE_DIM, \
+from active_labeling.active_learning.modeling.monte_carlo_wrapper import BAYESIAN_SAMPLE_DIM, \
     MonteCarloWrapper
 
 
