@@ -42,7 +42,7 @@ if __name__ == '__main__':
         labels=OrderedSet(('airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog',
                            'horse', 'ship', 'truck')),
         early_stopping_metric='val_accuracy',
-        pool_size=0.1,
+        pool_size=0.2,
         dataloader_kwargs={'batch_size': 16},
         initial_training_set_size=10,
     )
@@ -50,7 +50,7 @@ if __name__ == '__main__':
     cnn = get_pretrained_model()
     bayesian_cnn = MonteCarloWrapper(cnn, config.bayesian_sample_size)
     sampler = Sampler(
-        query=BALDQuery(
+        query=UncertaintyQuery(
             predict_func=lambda dataset: predict(bayesian_cnn, dataset, config.dataloader_kwargs),
             shuffle_prob=0.,
         ),

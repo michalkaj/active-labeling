@@ -14,6 +14,7 @@ class LearningConfig:
     early_stopping_metric: str
     batch_size: int = 10
     pool_size: float = 0.1
+    epochs: int = 10
     bayesian_sample_size: int = 20
     initial_training_set_size: int = 100
     dataloader_kwargs: Dict[str, Any] = field(default_factory=dict)

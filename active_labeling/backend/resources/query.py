@@ -3,7 +3,6 @@ from typing import Dict, List
 
 import pytorch_lightning as pl
 from flask_restful import Resource, reqparse
-from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.metrics import Metric
 from torch.utils.data import Dataset, DataLoader
 
@@ -46,14 +45,15 @@ class Query(Resource):
         cls._valid_dataset = valid_dataset
         cls._metrics = metrics
         cls._trainer = pl.Trainer(
-            callbacks=[EarlyStopping(
-                monitor=config.early_stopping_metric,
-                min_delta=0.01,
-            )],
-            max_epochs=1,
+            # callbacks=[EarlyStopping(
+            #     monitor=config.early_stopping_metric,
+            #     min_delta=0.01,
+            # )],
             **config.trainer_kwargs,
             weights_summary=None,
             num_sanity_val_steps=0,
+            max_epochs=config.epochs,
+            check_val_every_n_epoch=config.epochs,
         )
         cls._batch_cache = batch_cache
         return cls

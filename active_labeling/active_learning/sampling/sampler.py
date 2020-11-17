@@ -15,9 +15,9 @@ class Sampler:
     def sample(self,
                active_dataset: ActiveDataset,
                sample_size: int) -> Sequence[Path]:
-        # with Reducer(active_dataset, self._pool_size_reduction) as reduced_dataset:
-        indices = self._query(active_dataset.evaluate(), sample_size)
-        return active_dataset.get_examples(indices)
+        with _Reducer(active_dataset, self._pool_size_reduction) as reduced_dataset:
+            indices = self._query(reduced_dataset.evaluate(), sample_size)
+            return reduced_dataset.get_examples(indices)
 
 
 class _Reducer:
