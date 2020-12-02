@@ -45,10 +45,6 @@ class Query(Resource):
         cls._valid_dataset = valid_dataset
         cls._metrics = metrics
         cls._trainer = pl.Trainer(
-            # callbacks=[EarlyStopping(
-            #     monitor=config.early_stopping_metric,
-            #     min_delta=0.01,
-            # )],
             **config.trainer_kwargs,
             weights_summary=None,
             num_sanity_val_steps=0,

@@ -94,23 +94,6 @@ class _Loss(Metric):
     def compute(self):
         return self.loss.float() / self.total
 
-class AccuracyEarlyStopping(EarlyStopping):
-    def __init__(self, monitor, threshold=0.98):
-        super().__init__(
-            monitor,
-        )
-        self._threshold = threshold
-
-    def on_validation_end(self, trainer, pl_module):
-        # override this to disable early stopping at the end of val loop
-        pass
-
-    def on_train_end(self, trainer, pl_module):
-        logs = trainer.logger_connector.callback_metrics
-        current = logs.get(self.monitor)
-        if current.compute() >= self._threshold:
-            trainer.should_stop = True
-
 
 class SaveBestModel(Callback):
     def __init__(self, monitor, min_epochs=20, min_threshold=0.02):
